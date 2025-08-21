@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Delay</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon-32x32.png"> <!-- Adiciona o favicon -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>GhostDelay</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><h3>PAINEL</h3></li>
+                    <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><h3>CONTROLES</h3></li>
+                    <li><a href="#"><i class="fas fa-users"></i> Usuários</a></li>
+                    <li><a href="#"><i class="fas fa-user-plus"></i> Usuários Registrados</a></li>
+                    <li><a href="#"><i class="fas fa-check-circle"></i> Usuários Ativos</a></li>
+                    <li><a href="#"><i class='fas fa-ban'></i>Usuários Inativos</a></li>
+                    <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header>
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Dashboard de Assinaturas</h1>
+                <button class="logout-btn" id="logoutBtn">Sair</button>
+            </header>
+            <div class="container">
+                <div class="admin-panel">
+                    <div class="panel-card">
+                        <h3>Total de Usuários</h3>
+                        <p id="total-users">0</p>
+                    </div>
+                    <div class="panel-card">
+                        <h3>Saldo Total (R$)</h3>
+                        <p id="total-balance">0.00</p>
+                    </div>
+                    <div class="panel-card">
+                        <h3>Assinaturas Ativas</h3>
+                        <p id="active-subscriptions">0</p>
+                    </div>
+                    <div class="panel-card">
+                        <h3>Assinaturas Vencidas</h3>
+                        <p id="expired-subscriptions">0</p>
+                    </div>
+                </div>
+                <div id="search-container" style="display: none; margin-bottom: 20px;">
+                    <input type="text" id="search-input" placeholder="🔎Pesquisar por ID ou Nome" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div id="loading" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Carregando...</span>
+                    </div>
+                </div>
+                <div id="error" class="alert alert-danger" style="display: none;"></div>
+                <table id="usersTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>WhatsApp</th>
+                            <th>Data Registro</th>
+                            <th>Data Pagamentos</th>
+                            <th>Saldo</th>
+                            <th>Expiração</th>
+                            <th>Dias Restan.</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+<!-- Modal de Edição -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Editar Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="edit-id" class="form-label">ID Discord</label>
+                        <input type="text" class="form-control" id="edit-id" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-name" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="edit-name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-balance" class="form-label">Saldo</label>
+                        <input type="number" class="form-control" id="edit-balance" step="0.01" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-expiration" class="form-label">Data de Expiração</label>
+                        <input type="date" class="form-control" id="edit-expiration">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-days-remaining" class="form-label">Dias Restantes</label>
+                        <input type="text" class="form-control" id="edit-days-remaining" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-indication" class="form-label">Indicação</label>
+                        <select class="form-select" id="edit-indication">
+                            <option value="Nenhum">Nenhum</option>
+                            <option value="SOUZASETE">SOUZASETE</option>
+                            <option value="MT">MT</option>
+                            <option value="RNUNES">RNUNES</option>
+                            <option value="DG">DG</option>
+                            <option value="GREENZADA">GREENZADA</option>
+                            <option value="BLACKGG">BLACKGG</option>
+                            <option value="COQUIN7">COQUIN7</option>
+                            <option value="NIKGREEN">NIKGREEN</option>
+                            <option value="THCARRILLO">THCARRILLOE</option>
+                            <option value="GOMESCITY">GOMESCITY</option>
+                            <option value="ITZGOD">ITZGOD</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary save-btn">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cancelamento -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">Confirmar Cancelamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja cancelar a assinatura de <span id="cancel-name">-</span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger delete-all-btn">Excluir Todos os Dados</button>
+            </div>
+        </div>
+    </div>
+</div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script></body>
+</html>
