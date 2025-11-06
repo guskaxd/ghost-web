@@ -33,6 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const usersTable = document.getElementById('usersTable');
     const logoutBtn = document.getElementById('logoutBtn');
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const addUserBtn = document.getElementById('addUserBtn');
+    const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+    const saveNewUserBtn = document.getElementById('saveNewUserBtn');
+    let allUsers = [];
+
     editModal = document.getElementById('editModal');
     cancelModal = document.getElementById('cancelModal');
     editIdInput = document.getElementById('edit-id');
@@ -42,9 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editDaysRemainingInput = document.getElementById('edit-days-remaining');
     editIndicationInput = document.getElementById('edit-indication');
     cancelNameDisplay = document.getElementById('cancel-name');
-    const loadingDiv = document.getElementById('loading');
-    const errorDiv = document.getElementById('error');
-    let allUsers = [];
+
 
     if (!tableBody || !totalUsersEl || !totalBalanceEl || !activeSubscriptionsEl || !expiredSubscriptionsEl || !sidebar || !menuToggle || !searchContainer || !searchInput || !usersTable || !logoutBtn || !editModal || !cancelModal || !editIdInput || !editNameInput || !editBalanceInput || !editExpirationInput || !editDaysRemainingInput || !editIndicationInput || !cancelNameDisplay || !loadingDiv || !errorDiv) {
         console.error('Erro: Um ou mais elementos DOM não foram encontrados:', {
@@ -88,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDashboard() {
         console.log('Carregando Dashboard...');
         showLoading();
-        searchContainer.style.display = 'none';
+        searchContainer.style.display = 'flex';
         usersTable.style.display = 'none';
         fetch('https://ghostdelay.discloud.app/users', {
             credentials: 'include',
@@ -136,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadUsers() {
         console.log('Carregando Usuários...');
         showLoading();
-        searchContainer.style.display = 'block';
+        searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
         fetch('https://ghostdelay.discloud.app/users', {
             credentials: 'include',
@@ -164,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
                 console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário encontrado.</td></tr>';
                 updateDashboardStats(data);
                 return;
             }
@@ -176,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             hideLoading();
             console.error('Erro ao carregar Usuários:', error);
-            tableBody.innerHTML = `<tr><td colspan="9">Erro: ${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
             updateDashboardStats([]);
             showError(`Erro ao carregar usuários: ${error.message}`);
             alert(`Erro ao carregar usuários: ${error.message}`);
@@ -186,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadRegisteredUsers() {
         console.log('Carregando Usuários Registrados...');
         showLoading();
-        searchContainer.style.display = 'block';
+        searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
         fetch('https://ghostdelay.discloud.app/users', {
             credentials: 'include',
@@ -214,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
                 console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário registrado encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário registrado encontrado.</td></tr>';
                 updateDashboardStats(data);
                 return;
             }
@@ -225,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return hasNoPaymentHistory && hasNoExpiration;
             });
             if (registeredUsers.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário registrado encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário registrado encontrado.</td></tr>';
             } else {
                 populateUserTable(registeredUsers);
             }
@@ -235,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             hideLoading();
             console.error('Erro ao carregar dados:', error);
-            tableBody.innerHTML = `<tr><td colspan="9">Erro: ${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
             updateDashboardStats([]);
             showError(`Erro ao carregar usuários registrados: ${error.message}`);
             alert(`Erro ao carregar usuários registrados: ${error.message}`);
@@ -245,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadActiveUsers() {
         console.log('Carregando Usuários Ativos...');
         showLoading();
-        searchContainer.style.display = 'block';
+        searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
         fetch('https://ghostdelay.discloud.app/users', {
             credentials: 'include',
@@ -273,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
                 console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário ativo encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário ativo encontrado.</td></tr>';
                 updateDashboardStats(data);
                 return;
             }
@@ -284,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return !isNaN(expDate.getTime()) && expDate > new Date();
             });
             if (activeUsers.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário ativo encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário ativo encontrado.</td></tr>';
             } else {
                 populateUserTable(activeUsers);
             }
@@ -294,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             hideLoading();
             console.error('Erro ao carregar dados:', error);
-            tableBody.innerHTML = `<tr><td colspan="9">Erro: ${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
             updateDashboardStats([]);
             showError(`Erro ao carregar usuários ativos: ${error.message}`);
             alert(`Erro ao carregar usuários ativos: ${error.message}`);
@@ -304,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadInactiveUsers() {
         console.log('Carregando Usuários Inativos...');
         showLoading();
-        searchContainer.style.display = 'block';
+        searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
         fetch('https://ghostdelay.discloud.app/users', {
             credentials: 'include',
@@ -332,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
                 console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário inativo encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário inativo encontrado.</td></tr>';
                 updateDashboardStats(data);
                 return;
             }
@@ -343,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return isNaN(expDate.getTime()) || expDate <= new Date();
             });
             if (inactiveUsers.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9">Nenhum usuário inativo encontrado.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário inativo encontrado.</td></tr>';
             } else {
                 populateUserTable(inactiveUsers);
             }
@@ -353,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             hideLoading();
             console.error('Erro ao carregar dados:', error);
-            tableBody.innerHTML = `<tr><td colspan="9">Erro: ${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
             updateDashboardStats([]);
             showError(`Erro ao carregar usuários inativos: ${error.message}`);
             alert(`Erro ao carregar usuários inativos: ${error.message}`);
@@ -393,44 +398,52 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateUserTable(users) {
         console.log('Populando tabela com usuários:', users);
         tableBody.innerHTML = '';
-        const indicationCoupons = ['SOUZASETE', 'MT', 'RNUNES', 'DG', 'GREENZADA', 'BLACKGG', 'COQUIN7', 'NIKGREEN', 'THCARRILLO', 'GOMESCITY', 'ITZGOD'];
+        const indicationCoupons = ['SOUZASETE', 'MT', 'RNUNES', 'DG', 'GREENZADA', 
+            'BLACKGG', 'COQUIN7', 'NIKGREEN', 'THCARRILLO', 'GOMESCITY', 
+            'ITZGOD', 'DIONIS', 'CRUSHER', 'VICENTE', 'VINNY10', 'DIONIS', 'ORIENTES', 'UBITA' ];
     
-        users.forEach(user => {
-            const paymentDates = user.paymentHistory && user.paymentHistory.length > 0
-                ? user.paymentHistory.map(p => new Date(p.timestamp).toLocaleDateString('pt-BR')).join(', ')
-                : '-';
-            const escapedName = user.name ? user.name.replace(/'/g, "\\'") : '-';
-            const indication = user.indication || 'Nenhuma';
-            const row = document.createElement('tr');
-            if (indicationCoupons.includes(indication)) {
-                row.classList.add('indicated-user');
-            }
-            const expirationDate = user.expirationDate ? new Date(user.expirationDate) : null;
-            const daysRemaining = calculateDaysRemaining(user.expirationDate);
-            const formattedExpiration = expirationDate && !isNaN(expirationDate.getTime())
-                ? expirationDate.toLocaleDateString('pt-BR')
-                : '-';
-    
-            row.innerHTML = `
-                <td>${user.userId || '-'}</td>
-                <td>${user.name || '-'}</td>
-                <td>${user.whatsapp || '-'}</td>
-                <td>${user.registeredAt ? new Date(user.registeredAt).toLocaleDateString('pt-BR') : '-'}</td>
-                <td>${paymentDates}</td>
-                <td>${(user.balance || 0).toFixed(2)}</td>
-                <td>${formattedExpiration}</td>
-                <td>${daysRemaining}</td>
-                <td>
-                    <button class="action-btn edit-btn" data-user-id="${user.userId}" data-name="${escapedName}" data-balance="${user.balance || 0}" data-expiration="${user.expirationDate || ''}" data-indication="${indication}">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="action-btn delete-btn" data-user-id="${user.userId}" data-name="${escapedName}">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
+            users.forEach(user => {
+                let paymentDisplay = '-';
+                if (user.paymentHistory && user.paymentHistory.length > 0) {
+                    const lastPayment = user.paymentHistory[user.paymentHistory.length - 1];
+                    if (lastPayment && typeof lastPayment.amount !== 'undefined' && lastPayment.timestamp) {
+                        const amount = parseFloat(lastPayment.amount).toFixed(2);
+                        const date = new Date(lastPayment.timestamp).toLocaleDateString('pt-BR');
+                        paymentDisplay = `R$ ${amount} (${date})`;
+                    }
+                }
+                const escapedName = user.name ? user.name.replace(/'/g, "\\'") : '-'; 
+                const indication = user.indication || 'Nenhuma';
+                const row = document.createElement('tr');
+                if (indicationCoupons.includes(indication)) {
+                    row.classList.add('indicated-user');
+                }
+        
+                // --- LÓGICA DE DATA ATUALIZADA AQUI ---
+                const correctedDate = getCorrectedLocalDate(user.expirationDate);
+                const formattedExpiration = correctedDate ? correctedDate.toLocaleDateString('pt-BR') : '-';
+                const daysRemainingText = correctedDate ? calculateDaysRemaining(correctedDate) : '0 dias';
+                
+                row.innerHTML = `
+                    <td>${user.userId || '-'}</td>
+                    <td>${user.name || '-'}</td>
+                    <td>${user.whatsapp || '-'}</td>
+                    <td>${user.registeredAt ? new Date(user.registeredAt).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td>${paymentDisplay}</td>
+                    <td>R$ ${(user.balance || 0).toFixed(2)}</td>
+                    <td>${formattedExpiration}</td>
+                    <td>${daysRemainingText}</td>
+                    <td>
+                        <button class="action-btn edit-btn" data-user-id="${user.userId}" data-name="${escapedName}" data-balance="${user.balance || 0}" data-expiration="${user.expirationDate || ''}" data-indication="${indication}">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="action-btn delete-btn" data-user-id="${user.userId}" data-name="${escapedName}">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
         console.log('Tabela populada com sucesso');
     }
 
@@ -570,72 +583,138 @@ document.addEventListener('DOMContentLoaded', () => {
             window.openCancelModal(userId, name);
         }
     });
+    // Evento para abrir o modal de adicionar usuário
+    addUserBtn.addEventListener('click', () => {
+        console.log('Botão "Adicionar Usuário" clicado');
+        document.getElementById('addUserForm').reset(); // Limpa o formulário
+        addUserModal.show();
+    });
+
+    // Evento para salvar o novo usuário
+    saveNewUserBtn.addEventListener('click', () => {
+        const userId = document.getElementById('add-userId').value;
+        const name = document.getElementById('add-name').value;
+        const whatsapp = document.getElementById('add-whatsapp').value;
+        const expirationDate = document.getElementById('add-expiration').value;
+
+        if (!userId || !name || !whatsapp) {
+            alert('Por favor, preencha todos os campos obrigatórios (ID, Nome, WhatsApp).');
+            return;
+        }
+
+        const userData = { userId, name, whatsapp };
+        if (expirationDate) {
+            userData.expirationDate = expirationDate;
+        }
+
+        console.log('Enviando dados do novo usuário para o servidor:', userData);
+
+        fetch(`https://ghostdelay.discloud.app/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            mode: 'cors',
+            body: JSON.stringify(userData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || 'Erro do servidor') });
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert(data.message);
+            addUserModal.hide();
+            loadUsers(); // Recarrega a lista de usuários
+        })
+        .catch(error => {
+            console.error('Erro ao adicionar usuário:', error);
+            alert(`Erro ao adicionar usuário: ${error.message}`);
+        });
+    });
 
     window.openEditModal = function(userId, name, balance, expirationDate, indication) {
         console.log('Abrindo modal de edição:', { userId, name, balance, expirationDate, indication });
-        if (!editModal || !editIdInput || !editNameInput || !editBalanceInput || !editExpirationInput || !editDaysRemainingInput || !editIndicationInput) {
-            console.error('Erro: Alguns elementos do modal de edição não foram encontrados');
-            return;
-        }
         currentUserId = userId;
         editIdInput.value = userId || '-';
         editNameInput.value = name || '-';
         editBalanceInput.value = balance.toFixed(2);
-        
-        if (expirationDate) {
-            try {
-                const expDate = new Date(expirationDate);
-                if (isNaN(expDate.getTime())) {
-                    console.warn('Data de expiração inválida ao abrir modal:', expirationDate);
-                    editExpirationInput.value = '';
-                    editDaysRemainingInput.value = '0 dias';
-                } else {
-                    editExpirationInput.value = expDate.toISOString().split('T')[0];
-                    updateDaysRemaining(expDate);
-                }
-            } catch (err) {
-                console.error('Erro ao parsear expirationDate no modal:', err.message, { expirationDate });
-                editExpirationInput.value = '';
-                editDaysRemainingInput.value = '0 dias';
-            }
-        } else {
-            editExpirationInput.value = '';
-            editDaysRemainingInput.value = '0 dias';
-        }
+    
+        // --- LÓGICA DE DATA ATUALIZADA AQUI ---
+    const correctedDate = getCorrectedLocalDate(expirationDate);
 
-        editIndicationInput.value = indication || 'Nenhuma';
-        console.log('Valor de Indicação definido:', editIndicationInput.value);
-
-        $(editModal).modal('show');
-        console.log('Modal de edição exibido');
-    };
-
-    function updateDaysRemaining(expirationDate) {
-        if (!editDaysRemainingInput) {
-            console.error('Erro: editDaysRemainingInput não encontrado');
-            return;
-        }
-        const currentDate = new Date();
-        const diffTime = new Date(expirationDate) - currentDate;
-        const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        editDaysRemainingInput.value = daysRemaining > 0 ? `${daysRemaining} dias` : '0 dias';
-        console.log('Dias restantes calculados:', editDaysRemainingInput.value);
+    if (correctedDate) {
+        const year = correctedDate.getFullYear();
+        const month = String(correctedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(correctedDate.getDate()).padStart(2, '0');
+        editExpirationInput.value = `${year}-${month}-${day}`;
+        editDaysRemainingInput.value = calculateDaysRemaining(correctedDate).replace(' dias', '');
+    } else {
+        editExpirationInput.value = '';
+        editDaysRemainingInput.value = 0;
     }
 
-    function calculateDaysRemaining(expirationDate) {
-        if (!expirationDate) return '0 dias';
+        editIndicationInput.value = indication || 'Nenhuma';
+        const myModal = new bootstrap.Modal(editModal);
+        myModal.show();
+        console.log('Modal de edição exibido');
+    };
+    
+    // Escutador para quando o admin altera os DIAS
+    editDaysRemainingInput.addEventListener('input', () => {
+        const days = parseInt(editDaysRemainingInput.value, 10);
+        if (!isNaN(days) && days >= 0) {
+            const today = new Date();
+            // Zera a hora para evitar problemas com fuso horário
+            today.setHours(0, 0, 0, 0);
+            
+            const newExpirationDate = new Date(today);
+            newExpirationDate.setDate(today.getDate() + days);
+            
+            // Formata a data para o formato YYYY-MM-DD que o input "date" aceita
+            editExpirationInput.value = newExpirationDate.toISOString().split('T')[0];
+        }
+    });
+
+    editExpirationInput.addEventListener('input', () => {
+        const newDate = editExpirationInput.value;
+        if (newDate) {
+            // Usamos a mesma lógica de cálculo, mas pegamos a data direto do input
+            const correctedDate = new Date(newDate + 'T00:00:00'); // Adiciona T00:00:00 para tratar como local
+            const days = calculateDaysRemaining(correctedDate).replace(' dias', '');
+            editDaysRemainingInput.value = days > 0 ? days : 0;
+        }
+    });
+    
+    // NOVA FUNÇÃO PARA CORRIGIR DATAS (IGNORANDO FUSO HORÁRIO)
+    function getCorrectedLocalDate(dateString) {
+        if (!dateString) return null;
+        const dateUTC = new Date(dateString);
+        if (isNaN(dateUTC.getTime())) return null;
+        
+        // Cria uma nova data na hora local usando os componentes UTC da data original.
+        // Isso efetivamente "transporta" a data (ex: 1 de Nov) para o fuso horário local sem alterá-la.
+        return new Date(dateUTC.getUTCFullYear(), dateUTC.getUTCMonth(), dateUTC.getUTCDate());
+    }
+
+    function calculateDaysRemaining(expDate) {
+        if (!expDate) return '0 dias';
         try {
-            const expDate = new Date(expirationDate);
             if (isNaN(expDate.getTime())) {
-                console.warn('Data de expiração inválida na tabela:', expirationDate);
                 return '0 dias';
             }
             const currentDate = new Date();
-            const diffTime = expDate - currentDate;
+            currentDate.setHours(0, 0, 0, 0); // Zera a hora da data atual para uma comparação justa
+            
+            // Clona a data de expiração para não modificar a original
+            const expirationDay = new Date(expDate.getTime());
+            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da data de expiração
+    
+            const diffTime = expirationDay - currentDate;
             const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return daysRemaining > 0 ? `${daysRemaining} dias` : '0 dias';
         } catch (err) {
-            console.error('Erro ao calcular dias restantes na tabela:', err.message, { expirationDate });
+            console.error('Erro ao calcular dias restantes:', err.message);
             return '0 dias';
         }
     }
@@ -651,15 +730,6 @@ document.addEventListener('DOMContentLoaded', () => {
         $(cancelModal).modal('show');
         console.log('Modal de cancelamento exibido');
 
-        const cancelSubscriptionBtn = document.querySelector('#cancelModal .delete-btn');
-        if (cancelSubscriptionBtn) {
-            cancelSubscriptionBtn.removeEventListener('click', handleCancelSubscription); // Remover evento anterior
-            cancelSubscriptionBtn.addEventListener('click', handleCancelSubscription, { once: true });
-            console.log('Evento de clique associado ao botão "Cancelar Assinatura"');
-        } else {
-            console.error('Erro: Botão "Cancelar Assinatura" não encontrado');
-        }
-
         const deleteAllBtn = document.querySelector('#cancelModal .delete-all-btn');
         if (deleteAllBtn) {
             deleteAllBtn.removeEventListener('click', handleDeleteAll); // Remover evento anterior
@@ -669,41 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro: Botão "Excluir Todos os Dados" não encontrado');
         }
     };
-
-    function handleCancelSubscription() {
-        console.log('Botão "Cancelar Assinatura" clicado para userId:', currentUserId);
-        if (!currentUserId) {
-            console.error('Erro: currentUserId não definido');
-            alert('Erro: ID do usuário não encontrado.');
-            return;
-        }
-        fetch(`https://ghostdelay.discloud.app/user/${currentUserId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            console.log('Resposta bruta:', { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) });
-            if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`Erro: ${response.status} - ${text || response.statusText}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Resposta do servidor:', data);
-            alert('Sucesso: Assinatura cancelada com sucesso!');
-            $(cancelModal).modal('hide');
-            loadUsers();
-        })
-        .catch(error => {
-            console.error('Erro ao cancelar assinatura:', error.message, error.stack);
-            alert(`Erro ao cancelar assinatura: ${error.message}`);
-        });
-    }
-
+    
     function handleDeleteAll() {
         console.log('Botão "Excluir Todos os Dados" clicado para userId:', currentUserId);
         if (!currentUserId) {
@@ -741,6 +777,5 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Erro ao excluir todos os dados: ${error.message}`);
         });
     }
-
     loadUsers();
 });

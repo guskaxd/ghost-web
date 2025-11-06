@@ -639,6 +639,24 @@ header h1 {
     }
 }
 
-.modal-backdrop {
+.hidden {
     display: none !important;
+}
+.search-add-container {
+    display: flex;
+    width: 100%; /* Garante que o container ocupe toda a largura disponível */
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.search-add-container #search-input {
+    flex-grow: 1; /* Faz a barra de pesquisa esticar para preencher o espaço */
+    
+    /* Estilos visuais */
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    height: 38px;
 }

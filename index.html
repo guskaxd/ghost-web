@@ -55,8 +55,11 @@
                         <p id="expired-subscriptions">0</p>
                     </div>
                 </div>
-                <div id="search-container" style="display: none; margin-bottom: 20px;">
-                    <input type="text" id="search-input" placeholder="🔎Pesquisar por ID ou Nome" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="search-container" class="search-add-container" style="display: none;">
+                    <input type="text" id="search-input" placeholder="🔎 Pesquisar por ID ou Nome">
+                    <button id="addUserBtn" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> Adicionar Usuário
+                    </button>
                 </div>
                 <div id="loading" style="display: none;">
                     <div class="spinner-border" role="status">
@@ -104,7 +107,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="edit-balance" class="form-label">Saldo</label>
-                        <input type="number" class="form-control" id="edit-balance" step="0.01" readonly>
+                        <input type="number" class="form-control" id="edit-balance" step="0.01">
                     </div>
                     <div class="mb-3">
                         <label for="edit-expiration" class="form-label">Data de Expiração</label>
@@ -112,10 +115,10 @@
                     </div>
                     <div class="mb-3">
                         <label for="edit-days-remaining" class="form-label">Dias Restantes</label>
-                        <input type="text" class="form-control" id="edit-days-remaining" readonly>
+                        <input type="number" class="form-control" id="edit-days-remaining">
                     </div>
                     <div class="mb-3">
-                        <label for="edit-indication" class="form-label">Indicação</label>
+                        <label for="edit-indication" class="form-label">Cupons</label>
                         <select class="form-select" id="edit-indication">
                             <option value="Nenhum">Nenhum</option>
                             <option value="SOUZASETE">SOUZASETE</option>
@@ -129,6 +132,12 @@
                             <option value="THCARRILLO">THCARRILLOE</option>
                             <option value="GOMESCITY">GOMESCITY</option>
                             <option value="ITZGOD">ITZGOD</option>
+                            <option value="CRUSHER">CRUSHER</option> 
+                            <option value="VICENTE">VICENTE</option>
+                            <option value="VINNY10">VINNY10</option>
+                            <option value="DIONIS">DIONIS</option>
+                            <option value="ORIENTES">ORIENTES</option>
+                            <option value="UBITA">UBITA</option>
                         </select>
                     </div>
                 </form>
@@ -140,8 +149,42 @@
         </div>
     </div>
 </div>
-
-<!-- Modal de Cancelamento -->
+<!-- Modal de Adição -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Adicionar Novo Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="add-userId" class="form-label">ID Discord</label>
+                        <input type="text" class="form-control" id="add-userId" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-name" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="add-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-whatsapp" class="form-label">WhatsApp</label>
+                        <input type="text" class="form-control" id="add-whatsapp" placeholder="Ex: 11912345678" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-expiration" class="form-label">Data de Expiração (Opcional)</label>
+                        <input type="date" class="form-control" id="add-expiration">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveNewUserBtn">Salvar Usuário</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal de Exclusão -->
 <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -159,7 +202,6 @@
         </div>
     </div>
 </div>
-    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script></body>
