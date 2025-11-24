@@ -400,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         const indicationCoupons = ['SOUZASETE', 'MT', 'RNUNES', 'DG', 'GREENZADA', 
             'BLACKGG', 'COQUIN7', 'NIKGREEN', 'THCARRILLO', 'GOMESCITY', 
-            'ITZGOD', 'DIONIS', 'CRUSHER', 'VICENTE', 'VINNY10', 'DIONIS', 'ORIENTES', 'UBITA' ];
+            'ITZGOD', 'DIONIS', 'CRUSHER', 'VICENTE', 'VINNY10', 'DIONIS', 'ORIENTES', 'UBITA', 'ROSENDO' ];
     
             users.forEach(user => {
                 let paymentDisplay = '-';
