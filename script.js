@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'none';
-        fetch('https://ghost-delay.up.railway.app/users', {
+        fetch('https://ghost-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-delay.up.railway.app/users', {
+        fetch('https://ghost-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-delay.up.railway.app/users', {
+        fetch('https://ghost-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-delay.up.railway.app/users', {
+        fetch('https://ghost-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-delay.up.railway.app/users', {
+        fetch('https://ghost-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const requestBody = { name, balance, expirationDate, indication };
 
             console.log('Enviando requisição PUT com:', requestBody);
-            fetch(`https://ghost-delay.up.railway.app/user/${currentUserId}`, {
+            fetch(`https://ghost-web.up.railway.app/user/${currentUserId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -540,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleLogout() {
         console.log('Logout solicitado');
-        fetch('https://ghost-delay.up.railway.app/logout', {
+        fetch('https://ghost-web.up.railway.app/logout', {
             method: 'POST',
             credentials: 'include',
             mode: 'cors'
@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log('Enviando dados do novo usuário para o servidor:', userData);
 
-        fetch(`https://ghost-delay.up.railway.app/user`, {
+        fetch(`https://ghost-web.up.railway.app/user`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Exclusão cancelada pelo usuário');
             return;
         }
-        fetch(`https://ghost-delay.up.railway.app/user/${currentUserId}/all`, {
+        fetch(`https://ghost-web.up.railway.app/user/${currentUserId}/all`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
