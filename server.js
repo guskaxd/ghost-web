@@ -186,27 +186,37 @@ app.put('/user/:userId', async (req, res) => {
         // 3. ATUALIZAÇÃO DA DATA (CORREÇÃO DO HORÁRIO)
         if (expirationDate && expirationDate.trim() !== '') {
             try {
-                // Cria a data baseada no input (vem como YYYY-MM-DD)
-                // Isso cria como 00:00:00 UTC
-                let parsedExpirationDate = new Date(expirationDate);
+                // O input vem como "YYYY-MM-DD" (Ex: "2026-02-16")
+                // Vamos dividir essa string para garantir que pegamos dia, mês e ano corretos
+                const parts = expirationDate.split('-'); // [ '2026', '02', '16' ]
                 
-                // CORREÇÃO CRÍTICA:
-                // Adicionamos 23 horas, 59 minutos e 59 segundos.
-                // Isso garante que a assinatura dure até o ÚLTIMO SEGUNDO do dia escolhido.
-                parsedExpirationDate.setUTCHours(26, 59, 59, 999);
+                if (parts.length !== 3) {
+                    throw new Error("Formato de data inválido. Use YYYY-MM-DD.");
+                }
 
-                console.log(`Atualizando data de expiração do usuário ${userId} para final do dia: ${parsedExpirationDate.toISOString()}`);
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1; // Meses em JS começam em 0 (Jan = 0)
+                const day = parseInt(parts[2]);
+
+                // Criamos a data DIRETAMENTE no horário que queremos:
+                // Ano, Mês, Dia, Hora(26), Min(59), Seg(59)
+                // Usamos Date.UTC para garantir que o servidor não aplique fuso local dele
+                
+                // Nota: 26 horas = 02:00 do dia seguinte.
+                const finalDate = new Date(Date.UTC(year, month, day, 26, 59, 59, 999));
+
+                console.log(`[DEBUG] Input: ${expirationDate} | Salvo no Banco: ${finalDate.toISOString()}`);
                 
                 await db.collection('expirationDates').updateOne(
                     { userId },
-                    { $set: { expirationDate: parsedExpirationDate.toISOString() } },
+                    { $set: { expirationDate: finalDate.toISOString() } },
                     { upsert: true }
                 );
             } catch (err) {
                 console.warn('Erro ao processar data:', err);
                 return res.status(400).json({ error: 'Data inválida fornecida.' });
             }
-        } 
+        }
         // OBS: Removemos qualquer lógica de 'else { delete }'. 
         // Se a data vier vazia, ele simplesmente NÃO MEXE na data antiga.
 
