@@ -643,35 +643,33 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUserId = userId;
         editIdInput.value = userId || '-';
         editNameInput.value = name || '-';
-        editBalanceInput.value = balance.toFixed(2);
+        editBalanceInput.value = parseFloat(balance).toFixed(2);
     
         // --- LÓGICA DE DATA CORRIGIDA ---
-        // O servidor manda UTC (02:59 amanhã). O navegador converte para Local (23:59 hoje).
-        if (expirationDate) {
+        if (expirationDate && expirationDate !== 'undefined' && expirationDate !== '') {
             const dateObj = new Date(expirationDate);
             if (!isNaN(dateObj.getTime())) {
+                // O navegador converte automaticamente o UTC do servidor para o horário local
                 const year = dateObj.getFullYear();
                 const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                 const day = String(dateObj.getDate()).padStart(2, '0');
                 
                 editExpirationInput.value = `${year}-${month}-${day}`;
                 
-                // Atualiza o display de dias restantes
-                const days = calculateDaysRemaining(dateObj).replace(' dias', '');
-                editDaysRemainingInput.value = days;
+                // Atualiza o display visual usando a nova lógica
+                editDaysRemainingInput.value = calculateDaysRemaining(dateObj);
             } else {
                 editExpirationInput.value = '';
-                editDaysRemainingInput.value = 0;
+                editDaysRemainingInput.value = '';
             }
         } else {
             editExpirationInput.value = '';
-            editDaysRemainingInput.value = 0;
+            editDaysRemainingInput.value = '';
         }
 
         editIndicationInput.value = indication || 'Nenhuma';
         const myModal = new bootstrap.Modal(editModal);
         myModal.show();
-        console.log('Modal de edição exibido');
     };
 
     editExpirationInput.addEventListener('input', () => {
@@ -685,24 +683,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function calculateDaysRemaining(expDate) {
-        if (!expDate) return '0 dias';
+        if (!expDate) return '-';
         try {
             if (isNaN(expDate.getTime())) {
-                return '0 dias';
+                return '-';
             }
             const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0); // Zera a hora da data atual para uma comparação justa
+            currentDate.setHours(0, 0, 0, 0); // Zera a hora atual
             
-            // Clona a data de expiração para não modificar a original
             const expirationDay = new Date(expDate.getTime());
-            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da data de expiração
+            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da expiração
     
             const diffTime = expirationDay - currentDate;
             const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return daysRemaining > 0 ? `${daysRemaining} dias` : '0 dias';
+            
+            if (daysRemaining < 0) return 'Expirado';
+            if (daysRemaining === 0) return 'Vence Hoje'; // Mostra que ainda vale por hoje
+            return `${daysRemaining} dias`;
         } catch (err) {
             console.error('Erro ao calcular dias restantes:', err.message);
-            return '0 dias';
+            return '-';
         }
     }
 
