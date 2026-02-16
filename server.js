@@ -149,7 +149,6 @@ app.get('/user/:userId', async (req, res) => {
     }
 });
 
-// Rota para atualizar dados do usuário (BLINDADA E COM LOGS DETALHADOS)
 app.put('/user/:userId', async (req, res) => {
     try {
         console.log(`[PUT] Rota /user/${req.params.userId} acessada`);
@@ -157,7 +156,7 @@ app.put('/user/:userId', async (req, res) => {
         const userId = req.params.userId.toString().trim();
         const { name, balance, expirationDate, indication } = req.body;
 
-        console.log(`[PUT] Dados recebidos para ${userId}:`, { name, balance, expirationDate, indication });
+        console.log(`[PUT] Recebido para ${userId}:`, { name, balance, expirationDate });
 
         // 1. Atualização de Saldo
         if (balance !== undefined) {
@@ -183,59 +182,51 @@ app.put('/user/:userId', async (req, res) => {
             );
         }
 
-        // 3. ATUALIZAÇÃO DA DATA (LÓGICA DE SEGURANÇA MÁXIMA)
-        if (expirationDate && expirationDate.trim() !== '') {
+        // 3. ATUALIZAÇÃO DA DATA (CORREÇÃO DE FUSO E SEGURANÇA)
+        // Só entra aqui se expirationDate for uma string válida e não vazia
+        if (expirationDate && typeof expirationDate === 'string' && expirationDate.trim() !== '') {
             try {
-                // Input esperado: "YYYY-MM-DD" (Ex: "2026-02-16")
+                // Input esperado: "YYYY-MM-DD"
                 const parts = expirationDate.split('-'); 
                 
-                if (parts.length !== 3) {
-                    throw new Error(`Formato recebido inválido: ${expirationDate}. Use YYYY-MM-DD.`);
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1; // Mês começa em 0
+                    const day = parseInt(parts[2]);
+
+                    // Lógica: Definir para 23:59:59 do dia escolhido (Horário Brasil -3)
+                    // Isso equivale a 02:59:59 do dia seguinte em UTC.
+                    // Usamos Date.UTC para montar a data universalmente.
+                    const finalDateMs = Date.UTC(year, month, day, 26, 59, 59, 999);
+                    const finalDateObj = new Date(finalDateMs);
+
+                    if (!isNaN(finalDateObj.getTime())) {
+                        const isoDate = finalDateObj.toISOString();
+                        
+                        console.log(`[DATA] Salvando data para ${userId}: ${isoDate}`);
+
+                        await db.collection('expirationDates').updateOne(
+                            { userId },
+                            { $set: { expirationDate: isoDate } },
+                            { upsert: true }
+                        );
+                    } else {
+                        console.error(`[ERRO] Data calculada inválida para input: ${expirationDate}`);
+                    }
                 }
-
-                const year = parseInt(parts[0]);
-                const month = parseInt(parts[1]) - 1; // Mês 0-indexed (Jan=0, Fev=1)
-                const day = parseInt(parts[2]);
-
-                // Lógica de Fuso: 23:59 Brasil = 02:59 UTC do dia seguinte (+3h)
-                // Usamos 26 horas (23h + 3h fuso)
-                const finalDateMs = Date.UTC(year, month, day, 26, 59, 59, 999);
-                const finalDateObj = new Date(finalDateMs);
-
-                // TRAVA DE SEGURANÇA: Verifica se a data é válida
-                if (isNaN(finalDateObj.getTime())) {
-                    throw new Error("Cálculo gerou uma Data Inválida (Invalid Date). Abortando salvamento.");
-                }
-
-                // TRAVA DE DATA PASSADA (Opcional - Ajuda a entender se você está salvando algo já vencido)
-                // if (finalDateObj < new Date()) {
-                //     console.warn(`[AVISO] A data salva para ${userId} já está no passado! Isso removerá o VIP.`);
-                // }
-
-                // Convertemos para ISO String para garantir compatibilidade total com JSON e Bot
-                const isoDate = finalDateObj.toISOString();
-
-                console.log(`[DEBUG DATE] Input: ${expirationDate}`);
-                console.log(`[DEBUG DATE] Interpretado: Ano ${year}, Mês ${month + 1}, Dia ${day}`);
-                console.log(`[DEBUG DATE] Salvo no Banco: ${isoDate} (Deve ser 02:59 do dia seguinte ao input)`);
-                
-                await db.collection('expirationDates').updateOne(
-                    { userId },
-                    { $set: { expirationDate: isoDate } }, // Salvando como STRING ISO
-                    { upsert: true }
-                );
             } catch (err) {
-                console.error(`[ERRO DATA] Falha ao processar data para ${userId}:`, err.message);
-                return res.status(400).json({ error: `Erro na data: ${err.message}` });
+                console.error(`[ERRO CRÍTICO] Falha ao processar data: ${err.message}`);
+                // Não retornamos erro 400 aqui para não travar a edição de saldo/nome se a data falhar
             }
+        } else {
+            console.log(`[INFO] Nenhuma data enviada ou data vazia. Mantendo a anterior.`);
         }
 
-        // Busca dados atualizados para retornar
+        // Retorna dados atualizados para o frontend
         const updatedUser = await db.collection('registeredUsers').findOne({ userId }) || {};
         const updatedExpiration = await db.collection('expirationDates').findOne({ userId }) || { expirationDate: null };
         const updatedBalance = await db.collection('userBalances').findOne({ userId }) || { balance: 0 };
 
-        res.setHeader('Content-Type', 'application/json');
         res.json({
             message: 'Dados atualizados com sucesso',
             updatedData: {
@@ -246,9 +237,10 @@ app.put('/user/:userId', async (req, res) => {
                 indication: updatedUser.indication
             }
         });
+
     } catch (err) {
-        console.error(`[ERRO CRÍTICO] Rota PUT /user/${req.params.userId}:`, err.message);
-        res.status(500).json({ error: 'Erro interno ao atualizar dados', details: err.message });
+        console.error(`[ERRO GERAL] Rota PUT: ${err.message}`);
+        res.status(500).json({ error: 'Erro interno ao atualizar dados' });
     }
 });
 

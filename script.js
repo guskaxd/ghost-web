@@ -52,9 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     if (!tableBody || !totalUsersEl || !totalBalanceEl || !activeSubscriptionsEl || !expiredSubscriptionsEl || !sidebar || !menuToggle || !searchContainer || !searchInput || !usersTable || !logoutBtn || !editModal || !cancelModal || !editIdInput || !editNameInput || !editBalanceInput || !editExpirationInput || !editDaysRemainingInput || !editIndicationInput || !cancelNameDisplay || !loadingDiv || !errorDiv) {
-        console.error('Erro: Um ou mais elementos DOM não foram encontrados:', {
-            tableBody, totalUsersEl, totalBalanceEl, activeSubscriptionsEl, expiredSubscriptionsEl, sidebar, menuToggle, searchContainer, searchInput, usersTable, logoutBtn, editModal, cancelModal, editIdInput, editNameInput, editBalanceInput, editExpirationInput, editDaysRemainingInput, editIndicationInput, cancelNameDisplay, loadingDiv, errorDiv
-        });
+        console.error('Erro: Um ou mais elementos DOM não foram encontrados.');
         return;
     }
 
@@ -100,11 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: 'cors'
         })
         .then(response => {
-            console.log('Resposta do servidor para Dashboard:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
             if (!response.ok) {
                 throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
             }
@@ -117,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(data => {
-            console.log('Dados brutos recebidos:', data);
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
                 console.warn('Dados inválidos ou ausentes:', data);
@@ -127,14 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             allUsers = data.users;
             updateDashboardStats(data);
-            console.log('Dashboard atualizado com:', data.users);
         })
         .catch(error => {
             hideLoading();
             console.error('Erro ao carregar Dashboard:', error);
             updateDashboardStats([]);
             showError(`Erro ao carregar dados: ${error.message}`);
-            alert(`Erro ao carregar dados: ${error.message}`);
         });
     }
 
@@ -148,27 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: 'cors'
         })
         .then(response => {
-            console.log('Resposta do servidor para Usuários:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
             if (!response.ok) {
                 throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                return response.text().then(text => {
-                    throw new Error(`Resposta não é JSON: ${text.substring(0, 50)}...`);
-                });
             }
             return response.json();
         })
         .then(data => {
-            console.log('Dados brutos recebidos:', JSON.stringify(data, null, 2));
             hideLoading();
             if (!data || !data.users || data.users.length === 0) {
-                console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
                 tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário encontrado.</td></tr>';
                 updateDashboardStats(data);
                 return;
@@ -176,51 +153,25 @@ document.addEventListener('DOMContentLoaded', () => {
             allUsers = data.users;
             updateDashboardStats(data);
             populateUserTable(data.users);
-            console.log('Usuários carregados:', data.users);
         })
         .catch(error => {
             hideLoading();
-            console.error('Erro ao carregar Usuários:', error);
             tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
             updateDashboardStats([]);
             showError(`Erro ao carregar usuários: ${error.message}`);
-            alert(`Erro ao carregar usuários: ${error.message}`);
         });
     }
 
     function loadRegisteredUsers() {
-        console.log('Carregando Usuários Registrados...');
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            console.log('Resposta do servidor para Usuários Registrados:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                return response.text().then(text => {
-                    throw new Error(`Resposta não é JSON: ${text.substring(0, 50)}...`);
-                });
-            }
-            return response.json();
-        })
+        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        .then(response => response.json())
         .then(data => {
-            console.log('Dados brutos recebidos:', data);
             hideLoading();
-            if (!data || !data.users || data.users.length === 0) {
-                console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário registrado encontrado.</td></tr>';
-                updateDashboardStats(data);
+            if (!data || !data.users) {
+                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário.</td></tr>';
                 return;
             }
             allUsers = data.users;
@@ -235,53 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 populateUserTable(registeredUsers);
             }
             updateDashboardStats(data);
-            console.log('Usuários registrados carregados:', registeredUsers);
         })
         .catch(error => {
             hideLoading();
-            console.error('Erro ao carregar dados:', error);
             tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
-            updateDashboardStats([]);
-            showError(`Erro ao carregar usuários registrados: ${error.message}`);
-            alert(`Erro ao carregar usuários registrados: ${error.message}`);
         });
     }
 
     function loadActiveUsers() {
-        console.log('Carregando Usuários Ativos...');
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            console.log('Resposta do servidor para Usuários Ativos:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                return response.text().then(text => {
-                    throw new Error(`Resposta não é JSON: ${text.substring(0, 50)}...`);
-                });
-            }
-            return response.json();
-        })
+        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        .then(response => response.json())
         .then(data => {
-            console.log('Dados brutos recebidos:', data);
             hideLoading();
-            if (!data || !data.users || data.users.length === 0) {
-                console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário ativo encontrado.</td></tr>';
-                updateDashboardStats(data);
-                return;
-            }
+            if (!data || !data.users) return;
             allUsers = data.users;
             const activeUsers = data.users.filter(user => {
                 if (!user.expirationDate) return false;
@@ -294,53 +214,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 populateUserTable(activeUsers);
             }
             updateDashboardStats(data);
-            console.log('Usuários ativos carregados:', activeUsers);
         })
         .catch(error => {
             hideLoading();
-            console.error('Erro ao carregar dados:', error);
             tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
-            updateDashboardStats([]);
-            showError(`Erro ao carregar usuários ativos: ${error.message}`);
-            alert(`Erro ao carregar usuários ativos: ${error.message}`);
         });
     }
 
     function loadInactiveUsers() {
-        console.log('Carregando Usuários Inativos...');
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            console.log('Resposta do servidor para Usuários Inativos:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                return response.text().then(text => {
-                    throw new Error(`Resposta não é JSON: ${text.substring(0, 50)}...`);
-                });
-            }
-            return response.json();
-        })
+        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        .then(response => response.json())
         .then(data => {
-            console.log('Dados brutos recebidos:', data);
             hideLoading();
-            if (!data || !data.users || data.users.length === 0) {
-                console.warn('Nenhum usuário encontrado ou dados inválidos:', data);
-                tableBody.innerHTML = '<tr><td colspan="10">Nenhum usuário inativo encontrado.</td></tr>';
-                updateDashboardStats(data);
-                return;
-            }
+            if (!data || !data.users) return;
             allUsers = data.users;
             const inactiveUsers = data.users.filter(user => {
                 if (!user.expirationDate) return true;
@@ -353,20 +242,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 populateUserTable(inactiveUsers);
             }
             updateDashboardStats(data);
-            console.log('Usuários inativos carregados:', inactiveUsers);
         })
         .catch(error => {
             hideLoading();
-            console.error('Erro ao carregar dados:', error);
             tableBody.innerHTML = `<tr><td colspan="10">Erro: ${error.message}</td></tr>`;
-            updateDashboardStats([]);
-            showError(`Erro ao carregar usuários inativos: ${error.message}`);
-            alert(`Erro ao carregar usuários inativos: ${error.message}`);
         });
     }
 
     function updateDashboardStats(data) {
-        console.log('Atualizando estatísticas do Dashboard:', data);
         const users = data.users || [];
         const totalUsers = users.length;
         const totalBalance = data.totalBalanceFromHistory || '0.00';
@@ -386,13 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         totalBalanceEl.textContent = parseFloat(totalBalance).toFixed(2);
         activeSubscriptionsEl.textContent = activeSubscriptions;
         expiredSubscriptionsEl.textContent = expiredSubscriptions;
-
-        console.log('Estatísticas atualizadas:', {
-            totalUsers,
-            totalBalance: parseFloat(totalBalance).toFixed(2),
-            activeSubscriptions,
-            expiredSubscriptions
-        });
     }
 
     function populateUserTable(users) {
@@ -419,10 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     row.classList.add('indicated-user');
                 }
         
-                // --- LÓGICA DE DATA ATUALIZADA AQUI ---
-                const correctedDate = getCorrectedLocalDate(user.expirationDate);
-                const formattedExpiration = correctedDate ? correctedDate.toLocaleDateString('pt-BR') : '-';
-                const daysRemainingText = correctedDate ? calculateDaysRemaining(correctedDate) : '0 dias';
+                // --- CORREÇÃO DA DATA NA TABELA ---
+                // Não usamos mais getCorrectedLocalDate. O navegador converte o UTC do servidor para local automaticamente.
+                const expDate = user.expirationDate ? new Date(user.expirationDate) : null;
+                const formattedExpiration = (expDate && !isNaN(expDate.getTime())) ? expDate.toLocaleDateString('pt-BR') : '-';
+                const daysRemainingText = (expDate && !isNaN(expDate.getTime())) ? calculateDaysRemaining(expDate) : '0 dias';
                 
                 row.innerHTML = `
                     <td>${user.userId || '-'}</td>
@@ -444,18 +321,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tableBody.appendChild(row);
             });
-        console.log('Tabela populada com sucesso');
     }
 
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
-        console.log('Busca iniciada com termo:', searchTerm);
         const filteredUsers = allUsers.filter(user => {
             return (user.userId && user.userId.toLowerCase().includes(searchTerm)) ||
                    (user.name && user.name.toLowerCase().includes(searchTerm));
         });
         populateUserTable(filteredUsers);
-        console.log('Tabela filtrada com:', filteredUsers);
     });
 
     const saveChangesBtn = document.querySelector('#editModal .save-btn');
@@ -463,17 +337,19 @@ document.addEventListener('DOMContentLoaded', () => {
         saveChangesBtn.addEventListener('click', () => {
             console.log('Botão "Salvar Alterações" clicado para userId:', currentUserId);
             if (!currentUserId) {
-                console.error('Erro: currentUserId não definido');
                 alert('Erro: ID do usuário não encontrado.');
                 return;
             }
             const name = editNameInput.value;
             const balance = parseFloat(editBalanceInput.value) || 0;
-            const expirationDate = editExpirationInput.value ? editExpirationInput.value : undefined;
             const indication = editIndicationInput.value === 'Nenhuma' ? null : editIndicationInput.value;
+            
+            // Lógica da data: Se vazio, vira undefined
+            const expirationDate = editExpirationInput.value ? editExpirationInput.value : undefined;
 
             const requestBody = { name, balance, indication };
 
+            // Só adiciona ao objeto se a data for válida (não for undefined)
             if (expirationDate !== undefined) {
                 requestBody.expirationDate = expirationDate;
             }
@@ -487,21 +363,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(requestBody)
             })
             .then(response => {
-                console.log('Resposta do servidor ao salvar:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: Object.fromEntries(response.headers.entries())
-                });
                 if (!response.ok) {
-                    return response.text().then(text => {
-                        throw new Error(`Erro: ${response.status} - ${text || response.statusText}`);
-                    });
+                    return response.text().then(text => { throw new Error(text || response.statusText); });
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Dados retornados após salvar:', JSON.stringify(data, null, 2));
-                if (data.error) throw new Error(data.error);
                 alert('Sucesso: Dados atualizados!');
                 $(editModal).modal('hide');
                 loadUsers();
@@ -511,57 +378,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`Erro ao atualizar dados: ${error.message}`);
             });
         });
-    } else {
-        console.error('Erro: Botão "Salvar Alterações" não encontrado');
     }
 
     $(editModal).on('hidden.bs.modal', () => {
         currentUserId = null;
-        console.log('Modal de edição fechado');
     });
 
     $(cancelModal).on('hidden.bs.modal', () => {
         currentUserId = null;
-        console.log('Modal de cancelamento fechado');
     });
 
     function showLoading() {
         loadingDiv.style.display = 'block';
         errorDiv.style.display = 'none';
-        console.log('Exibindo estado de carregamento');
     }
 
     function hideLoading() {
         loadingDiv.style.display = 'none';
-        console.log('Ocultando estado de carregamento');
     }
 
     function showError(message) {
         errorDiv.textContent = message;
         errorDiv.style.display = 'block';
-        console.log('Erro exibido:', message);
     }
 
     function handleLogout() {
-        console.log('Logout solicitado');
-        fetch('https://ghost-web.up.railway.app/logout', {
-            method: 'POST',
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            console.log('Resposta do logout:', { status: response.status, statusText: response.statusText });
-            return response.json().catch(() => ({}));
-        })
-        .then(data => {
-            console.log('Dados do logout:', data);
-        })
-        .catch(error => {
-            console.error('Erro ao fazer logout:', error.message);
-        })
+        fetch('https://ghost-web.up.railway.app/logout', { method: 'POST', credentials: 'include', mode: 'cors' })
         .finally(() => {
             localStorage.removeItem('isLoggedIn');
-            console.log('isLoggedIn removido do localStorage');
             window.location.href = '/login.html';
         });
     }
@@ -578,23 +422,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const balance = parseFloat(editBtn.dataset.balance) || 0;
             const expirationDate = editBtn.dataset.expiration;
             const indication = editBtn.dataset.indication || '';
-            console.log('Clicou em Editar para userId:', userId);
             window.openEditModal(userId, name, balance, expirationDate, indication);
         } else if (deleteBtn) {
             const userId = deleteBtn.dataset.userId;
             const name = deleteBtn.dataset.name.replace(/\\'/g, "'");
-            console.log('Clicou em Excluir para userId:', userId);
             window.openCancelModal(userId, name);
         }
     });
-    // Evento para abrir o modal de adicionar usuário
+    
     addUserBtn.addEventListener('click', () => {
-        console.log('Botão "Adicionar Usuário" clicado');
-        document.getElementById('addUserForm').reset(); // Limpa o formulário
+        document.getElementById('addUserForm').reset();
         addUserModal.show();
     });
 
-    // Evento para salvar o novo usuário
     saveNewUserBtn.addEventListener('click', () => {
         const userId = document.getElementById('add-userId').value;
         const name = document.getElementById('add-name').value;
@@ -602,16 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const expirationDate = document.getElementById('add-expiration').value;
 
         if (!userId || !name || !whatsapp) {
-            alert('Por favor, preencha todos os campos obrigatórios (ID, Nome, WhatsApp).');
+            alert('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
         const userData = { userId, name, whatsapp };
-        if (expirationDate) {
-            userData.expirationDate = expirationDate;
-        }
-
-        console.log('Enviando dados do novo usuário para o servidor:', userData);
+        if (expirationDate) userData.expirationDate = expirationDate;
 
         fetch(`https://ghost-web.up.railway.app/user`, {
             method: 'POST',
@@ -621,18 +457,15 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(userData)
         })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.error || 'Erro do servidor') });
-            }
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error || 'Erro do servidor') });
             return response.json();
         })
         .then(data => {
             alert(data.message);
             addUserModal.hide();
-            loadUsers(); // Recarrega a lista de usuários
+            loadUsers();
         })
         .catch(error => {
-            console.error('Erro ao adicionar usuário:', error);
             alert(`Erro ao adicionar usuário: ${error.message}`);
         });
     });
@@ -644,62 +477,42 @@ document.addEventListener('DOMContentLoaded', () => {
         editNameInput.value = name || '-';
         editBalanceInput.value = balance.toFixed(2);
     
-        // --- LÓGICA DE DATA ATUALIZADA AQUI ---
-    const correctedDate = getCorrectedLocalDate(expirationDate);
-
-    if (correctedDate) {
-        const year = correctedDate.getFullYear();
-        const month = String(correctedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(correctedDate.getDate()).padStart(2, '0');
-        editExpirationInput.value = `${year}-${month}-${day}`;
-        editDaysRemainingInput.value = calculateDaysRemaining(correctedDate).replace(' dias', '');
-    } else {
-        editExpirationInput.value = '';
-        editDaysRemainingInput.value = 0;
-    }
+        // --- LÓGICA DE DATA CORRIGIDA (SIMPLIFICADA) ---
+        if (expirationDate) {
+            const dateObj = new Date(expirationDate);
+            if (!isNaN(dateObj.getTime())) {
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                
+                editExpirationInput.value = `${year}-${month}-${day}`;
+                
+                // Atualiza o display de dias restantes
+                const days = calculateDaysRemaining(dateObj).replace(' dias', '');
+                editDaysRemainingInput.value = days;
+            } else {
+                editExpirationInput.value = '';
+                editDaysRemainingInput.value = 0;
+            }
+        } else {
+            editExpirationInput.value = '';
+            editDaysRemainingInput.value = 0;
+        }
 
         editIndicationInput.value = indication || 'Nenhuma';
         const myModal = new bootstrap.Modal(editModal);
         myModal.show();
-        console.log('Modal de edição exibido');
     };
     
-    // Escutador para quando o admin altera os DIAS
-    editDaysRemainingInput.addEventListener('input', () => {
-        const days = parseInt(editDaysRemainingInput.value, 10);
-        if (!isNaN(days) && days >= 0) {
-            const today = new Date();
-            // Zera a hora para evitar problemas com fuso horário
-            today.setHours(0, 0, 0, 0);
-            
-            const newExpirationDate = new Date(today);
-            newExpirationDate.setDate(today.getDate() + days);
-            
-            // Formata a data para o formato YYYY-MM-DD que o input "date" aceita
-            editExpirationInput.value = newExpirationDate.toISOString().split('T')[0];
-        }
-    });
-
+    // Atualização dinâmica dos dias restantes ao mudar a data no input
     editExpirationInput.addEventListener('input', () => {
         const newDate = editExpirationInput.value;
         if (newDate) {
-            // Usamos a mesma lógica de cálculo, mas pegamos a data direto do input
-            const correctedDate = new Date(newDate + 'T00:00:00'); // Adiciona T00:00:00 para tratar como local
+            const correctedDate = new Date(newDate + 'T00:00:00');
             const days = calculateDaysRemaining(correctedDate).replace(' dias', '');
             editDaysRemainingInput.value = days > 0 ? days : 0;
         }
     });
-    
-    // NOVA FUNÇÃO PARA CORRIGIR DATAS (IGNORANDO FUSO HORÁRIO)
-    function getCorrectedLocalDate(dateString) {
-        if (!dateString) return null;
-        const dateUTC = new Date(dateString);
-        if (isNaN(dateUTC.getTime())) return null;
-        
-        // Cria uma nova data na hora local usando os componentes UTC da data original.
-        // Isso efetivamente "transporta" a data (ex: 1 de Nov) para o fuso horário local sem alterá-la.
-        return new Date(dateUTC.getUTCFullYear(), dateUTC.getUTCMonth(), dateUTC.getUTCDate());
-    }
 
     function calculateDaysRemaining(expDate) {
         if (!expDate) return '0 dias';
@@ -708,11 +521,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return '0 dias';
             }
             const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0); // Zera a hora da data atual para uma comparação justa
+            currentDate.setHours(0, 0, 0, 0); // Zera a hora atual
             
-            // Clona a data de expiração para não modificar a original
             const expirationDay = new Date(expDate.getTime());
-            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da data de expiração
+            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da expiração
     
             const diffTime = expirationDay - currentDate;
             const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -724,37 +536,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.openCancelModal = function(userId, name) {
-        console.log('Abrindo modal de cancelamento:', { userId, name });
-        if (!cancelModal || !cancelNameDisplay) {
-            console.error('Erro: Elementos do modal de cancelamento não foram encontrados');
-            return;
-        }
+        if (!cancelModal || !cancelNameDisplay) return;
         currentUserId = userId;
         cancelNameDisplay.textContent = name || '-';
         $(cancelModal).modal('show');
-        console.log('Modal de cancelamento exibido');
 
         const deleteAllBtn = document.querySelector('#cancelModal .delete-all-btn');
         if (deleteAllBtn) {
-            deleteAllBtn.removeEventListener('click', handleDeleteAll); // Remover evento anterior
+            deleteAllBtn.removeEventListener('click', handleDeleteAll);
             deleteAllBtn.addEventListener('click', handleDeleteAll, { once: true });
-            console.log('Evento de clique associado ao botão "Excluir Todos os Dados"');
-        } else {
-            console.error('Erro: Botão "Excluir Todos os Dados" não encontrado');
         }
     };
     
     function handleDeleteAll() {
-        console.log('Botão "Excluir Todos os Dados" clicado para userId:', currentUserId);
-        if (!currentUserId) {
-            console.error('Erro: currentUserId não definido');
-            alert('Erro: ID do usuário não encontrado.');
-            return;
-        }
-        if (!confirm('Tem certeza que deseja excluir TODOS os dados deste usuário? Esta ação não pode ser desfeita.')) {
-            console.log('Exclusão cancelada pelo usuário');
-            return;
-        }
+        if (!currentUserId) return;
+        if (!confirm('Tem certeza que deseja excluir TODOS os dados deste usuário?')) return;
+        
         fetch(`https://ghost-web.up.railway.app/user/${currentUserId}/all`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -762,22 +559,15 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: 'cors'
         })
         .then(response => {
-            console.log('Resposta bruta:', { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) });
-            if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`Erro: ${response.status} - ${text || response.statusText}`);
-                });
-            }
+            if (!response.ok) return response.text().then(text => { throw new Error(text || response.statusText) });
             return response.json();
         })
         .then(data => {
-            console.log('Resposta do servidor:', data);
             alert('Sucesso: Todos os dados do usuário foram excluídos com sucesso!');
             $(cancelModal).modal('hide');
             loadUsers();
         })
         .catch(error => {
-            console.error('Erro ao excluir todos os dados:', error.message, error.stack);
             alert(`Erro ao excluir todos os dados: ${error.message}`);
         });
     }
