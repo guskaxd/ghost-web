@@ -149,7 +149,7 @@ app.get('/user/:userId', async (req, res) => {
     }
 });
 
-// Rota para atualizar dados do usuário (VERSÃO COM EDIÇÃO DE SALDO)
+// Rota para atualizar dados do usuário (CORRIGIDA E BLINDADA)
 app.put('/user/:userId', async (req, res) => {
     try {
         console.log(`Rota PUT /user/${req.params.userId} acessada`);
@@ -159,57 +159,56 @@ app.put('/user/:userId', async (req, res) => {
 
         console.log('Dados recebidos:', { name, balance, expirationDate, indication });
 
-        // --- INÍCIO DA NOVA LÓGICA DE ATUALIZAÇÃO DE SALDO ---
+        // 1. Atualização de Saldo
         if (balance !== undefined) {
             const newBalance = parseFloat(balance);
-            if (isNaN(newBalance) || newBalance < 0) {
-                console.warn('Validação falhou: Saldo deve ser um número positivo');
-                return res.status(400).json({ error: 'Saldo deve ser um número positivo' });
-            }
-
-            console.log(`Atualizando Saldo do usuário ${userId} para ${newBalance.toFixed(2)}`);
-            await db.collection('userBalances').updateOne(
-                { userId },
-                { $set: { balance: newBalance } },
-                { upsert: true } // Cria o documento se o usuário não tiver saldo
-            );
-        }
-        // --- FIM DA NOVA LÓGICA DE ATUALIZAÇÃO DE SALDO ---
-
-        let parsedExpirationDate = null;
-        if (expirationDate !== undefined && expirationDate !== null) {
-            try {
-                parsedExpirationDate = new Date(expirationDate);
-                if (isNaN(parsedExpirationDate.getTime())) {
-                    console.warn('Validação falhou: Data de expiração inválida', { expirationDate });
-                    return res.status(400).json({ error: 'Data de expiração inválida' });
-                }
-            } catch (err) {
-                console.warn('Erro ao parsear expirationDate:', err.message, { expirationDate });
-                return res.status(400).json({ error: 'Formato de data inválido' });
+            if (!isNaN(newBalance) && newBalance >= 0) {
+                await db.collection('userBalances').updateOne(
+                    { userId },
+                    { $set: { balance: newBalance } },
+                    { upsert: true }
+                );
             }
         }
 
-        if (name || indication !== undefined) {
-            console.log(`Atualizando nome e indicação do usuário ${userId}`);
+        // 2. Atualização de Nome/Indicação
+        const updateFields = {};
+        if (name) updateFields.name = name;
+        if (indication !== undefined) updateFields.indication = indication || null;
+        
+        if (Object.keys(updateFields).length > 0) {
             await db.collection('registeredUsers').updateOne(
                 { userId },
-                { $set: { name, indication: indication || null } }
+                { $set: updateFields }
             );
         }
 
-        if (expirationDate !== undefined) {
-            console.log(`Atualizando data de expiração do usuário ${userId} para ${expirationDate}`);
-            if (expirationDate === null) {
-                await db.collection('expirationDates').deleteOne({ userId });
-            } else {
+        // 3. ATUALIZAÇÃO DA DATA (CORREÇÃO DO HORÁRIO)
+        if (expirationDate && expirationDate.trim() !== '') {
+            try {
+                // Cria a data baseada no input (vem como YYYY-MM-DD)
+                // Isso cria como 00:00:00 UTC
+                let parsedExpirationDate = new Date(expirationDate);
+                
+                // CORREÇÃO CRÍTICA:
+                // Adicionamos 23 horas, 59 minutos e 59 segundos.
+                // Isso garante que a assinatura dure até o ÚLTIMO SEGUNDO do dia escolhido.
+                parsedExpirationDate.setUTCHours(23, 59, 59, 999);
+
+                console.log(`Atualizando data de expiração do usuário ${userId} para final do dia: ${parsedExpirationDate.toISOString()}`);
+                
                 await db.collection('expirationDates').updateOne(
                     { userId },
                     { $set: { expirationDate: parsedExpirationDate.toISOString() } },
                     { upsert: true }
                 );
+            } catch (err) {
+                console.warn('Erro ao processar data:', err);
+                return res.status(400).json({ error: 'Data inválida fornecida.' });
             }
-        }
+        } 
+        // OBS: Removemos qualquer lógica de 'else { delete }'. 
+        // Se a data vier vazia, ele simplesmente NÃO MEXE na data antiga.
 
         const updatedUser = await db.collection('registeredUsers').findOne({ userId }) || {};
         const updatedExpiration = await db.collection('expirationDates').findOne({ userId }) || { expirationDate: null };
@@ -221,14 +220,13 @@ app.put('/user/:userId', async (req, res) => {
             updatedData: {
                 userId,
                 name: updatedUser.name,
-                paymentHistory: updatedUser.paymentHistory || [],
                 balance: updatedBalance.balance,
                 expirationDate: updatedExpiration.expirationDate,
-                indication: updatedUser.indication || null
+                indication: updatedUser.indication
             }
         });
     } catch (err) {
-        console.error('Erro na rota PUT /user/:userId:', err.message, err.stack);
+        console.error('Erro na rota PUT /user/:userId:', err.message);
         res.status(500).json({ error: 'Erro ao atualizar dados', details: err.message });
     }
 });
