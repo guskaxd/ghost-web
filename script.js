@@ -469,10 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const name = editNameInput.value;
             const balance = parseFloat(editBalanceInput.value) || 0;
-            const expirationDate = editExpirationInput.value || null;
+            const expirationDate = editExpirationInput.value ? editExpirationInput.value : undefined;
             const indication = editIndicationInput.value === 'Nenhuma' ? null : editIndicationInput.value;
 
-            const requestBody = { name, balance, expirationDate, indication };
+            const requestBody = { name, balance, indication };
+
+            if (expirationDate !== undefined) {
+                requestBody.expirationDate = expirationDate;
+            }
 
             console.log('Enviando requisição PUT com:', requestBody);
             fetch(`https://ghost-web.up.railway.app/user/${currentUserId}`, {
