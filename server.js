@@ -193,7 +193,7 @@ app.put('/user/:userId', async (req, res) => {
                 // CORREÇÃO CRÍTICA:
                 // Adicionamos 23 horas, 59 minutos e 59 segundos.
                 // Isso garante que a assinatura dure até o ÚLTIMO SEGUNDO do dia escolhido.
-                parsedExpirationDate.setUTCHours(23, 59, 59, 999);
+                parsedExpirationDate.setUTCHours(26, 59, 59, 999);
 
                 console.log(`Atualizando data de expiração do usuário ${userId} para final do dia: ${parsedExpirationDate.toISOString()}`);
                 
