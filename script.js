@@ -166,7 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        fetch('https://ghost-web.up.railway.app/users', {
+            credentials: 'include',
+            mode: 'cors'
+        })
         .then(response => response.json())
         .then(data => {
             hideLoading();
@@ -197,7 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        fetch('https://ghost-web.up.railway.app/users', {
+            credentials: 'include',
+            mode: 'cors'
+        })
         .then(response => response.json())
         .then(data => {
             hideLoading();
@@ -225,7 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', { credentials: 'include', mode: 'cors' })
+        fetch('https://ghost-web.up.railway.app/users', {
+            credentials: 'include',
+            mode: 'cors'
+        })
         .then(response => response.json())
         .then(data => {
             hideLoading();
@@ -274,34 +283,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateUserTable(users) {
         console.log('Populando tabela com usuários:', users);
         tableBody.innerHTML = '';
-        const indicationCoupons = ['SOUZASETE', 'MT', 'RNUNES', 'DG', 'GREENZADA', 
-            'BLACKGG', 'COQUIN7', 'NIKGREEN', 'THCARRILLO', 'GOMESCITY', 
-            'ITZGOD', 'DIONIS', 'CRUSHER', 'VICENTE', 'VINNY10', 'DIONIS', 'ORIENTES', 'UBITA', 'ROSENDO', 'LONTRA' ];
-    
-            users.forEach(user => {
-                let paymentDisplay = '-';
-                if (user.paymentHistory && user.paymentHistory.length > 0) {
-                    const lastPayment = user.paymentHistory[user.paymentHistory.length - 1];
-                    if (lastPayment && typeof lastPayment.amount !== 'undefined' && lastPayment.timestamp) {
-                        const amount = parseFloat(lastPayment.amount).toFixed(2);
-                        const date = new Date(lastPayment.timestamp).toLocaleDateString('pt-BR');
-                        paymentDisplay = `R$ ${amount} (${date})`;
-                    }
+        const indicationCoupons = ['SOUZASETE', 'MT', 'RNUNES', 'DG', 'GREENZADA',
+            'BLACKGG', 'COQUIN7', 'NIKGREEN', 'THCARRILLO', 'GOMESCITY',
+            'ITZGOD', 'DIONIS', 'CRUSHER', 'VICENTE', 'VINNY10', 'DIONIS', 'ORIENTES', 'UBITA', 'ROSENDO', 'LONTRA'
+        ];
+
+        users.forEach(user => {
+            let paymentDisplay = '-';
+            if (user.paymentHistory && user.paymentHistory.length > 0) {
+                const lastPayment = user.paymentHistory[user.paymentHistory.length - 1];
+                if (lastPayment && typeof lastPayment.amount !== 'undefined' && lastPayment.timestamp) {
+                    const amount = parseFloat(lastPayment.amount).toFixed(2);
+                    const date = new Date(lastPayment.timestamp).toLocaleDateString('pt-BR');
+                    paymentDisplay = `R$ ${amount} (${date})`;
                 }
-                const escapedName = user.name ? user.name.replace(/'/g, "\\'") : '-'; 
-                const indication = user.indication || 'Nenhuma';
-                const row = document.createElement('tr');
-                if (indicationCoupons.includes(indication)) {
-                    row.classList.add('indicated-user');
-                }
-        
-                // --- CORREÇÃO DA DATA NA TABELA ---
-                // Não usamos mais getCorrectedLocalDate. O navegador converte o UTC do servidor para local automaticamente.
-                const expDate = user.expirationDate ? new Date(user.expirationDate) : null;
-                const formattedExpiration = (expDate && !isNaN(expDate.getTime())) ? expDate.toLocaleDateString('pt-BR') : '-';
-                const daysRemainingText = (expDate && !isNaN(expDate.getTime())) ? calculateDaysRemaining(expDate) : '0 dias';
-                
-                row.innerHTML = `
+            }
+            const escapedName = user.name ? user.name.replace(/'/g, "\\'") : '-';
+            const indication = user.indication || 'Nenhuma';
+            const row = document.createElement('tr');
+            if (indicationCoupons.includes(indication)) {
+                row.classList.add('indicated-user');
+            }
+
+            // --- LÓGICA DE DATA ATUALIZADA (CORREÇÃO DE FUSO) ---
+            // O servidor envia data UTC (ex: 2026-02-17T02:59:59Z)
+            // O navegador converte para local (ex: 2026-02-16T23:59:59 BRT)
+            const expDate = user.expirationDate ? new Date(user.expirationDate) : null;
+            
+            // Verifica se a data é válida antes de formatar
+            const isValidDate = expDate && !isNaN(expDate.getTime());
+            
+            const formattedExpiration = isValidDate ? expDate.toLocaleDateString('pt-BR') : '-';
+            const daysRemainingText = isValidDate ? calculateDaysRemaining(expDate) : '0 dias';
+
+            row.innerHTML = `
                     <td>${user.userId || '-'}</td>
                     <td>${user.name || '-'}</td>
                     <td>${user.whatsapp || '-'}</td>
@@ -319,15 +334,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         </button>
                     </td>
                 `;
-                tableBody.appendChild(row);
-            });
+            tableBody.appendChild(row);
+        });
     }
 
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
         const filteredUsers = allUsers.filter(user => {
             return (user.userId && user.userId.toLowerCase().includes(searchTerm)) ||
-                   (user.name && user.name.toLowerCase().includes(searchTerm));
+                (user.name && user.name.toLowerCase().includes(searchTerm));
         });
         populateUserTable(filteredUsers);
     });
@@ -343,40 +358,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = editNameInput.value;
             const balance = parseFloat(editBalanceInput.value) || 0;
             const indication = editIndicationInput.value === 'Nenhuma' ? null : editIndicationInput.value;
-            
-            // Lógica da data: Se vazio, vira undefined
+
+            // Se o campo de data estiver vazio, definimos como undefined para não enviar nada
             const expirationDate = editExpirationInput.value ? editExpirationInput.value : undefined;
 
-            const requestBody = { name, balance, indication };
+            const requestBody = {
+                name,
+                balance,
+                indication
+            };
 
-            // Só adiciona ao objeto se a data for válida (não for undefined)
+            // Só adiciona a data se ela foi realmente definida no input
             if (expirationDate !== undefined) {
                 requestBody.expirationDate = expirationDate;
             }
 
             console.log('Enviando requisição PUT com:', requestBody);
             fetch(`https://ghost-web.up.railway.app/user/${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                mode: 'cors',
-                body: JSON.stringify(requestBody)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text || response.statusText); });
-                }
-                return response.json();
-            })
-            .then(data => {
-                alert('Sucesso: Dados atualizados!');
-                $(editModal).modal('hide');
-                loadUsers();
-            })
-            .catch(error => {
-                console.error('Erro ao salvar:', error);
-                alert(`Erro ao atualizar dados: ${error.message}`);
-            });
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    mode: 'cors',
+                    body: JSON.stringify(requestBody)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(text || response.statusText);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('Sucesso: Dados atualizados!');
+                    $(editModal).modal('hide');
+                    loadUsers();
+                })
+                .catch(error => {
+                    console.error('Erro ao salvar:', error);
+                    alert(`Erro ao atualizar dados: ${error.message}`);
+                });
         });
     }
 
@@ -403,11 +426,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleLogout() {
-        fetch('https://ghost-web.up.railway.app/logout', { method: 'POST', credentials: 'include', mode: 'cors' })
-        .finally(() => {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = '/login.html';
-        });
+        fetch('https://ghost-web.up.railway.app/logout', {
+                method: 'POST',
+                credentials: 'include',
+                mode: 'cors'
+            })
+            .finally(() => {
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = '/login.html';
+            });
     }
 
     logoutBtn.addEventListener('click', handleLogout);
@@ -429,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.openCancelModal(userId, name);
         }
     });
-    
+
     addUserBtn.addEventListener('click', () => {
         document.getElementById('addUserForm').reset();
         addUserModal.show();
@@ -446,47 +473,63 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const userData = { userId, name, whatsapp };
+        const userData = {
+            userId,
+            name,
+            whatsapp
+        };
         if (expirationDate) userData.expirationDate = expirationDate;
 
         fetch(`https://ghost-web.up.railway.app/user`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            mode: 'cors',
-            body: JSON.stringify(userData)
-        })
-        .then(response => {
-            if (!response.ok) return response.json().then(err => { throw new Error(err.error || 'Erro do servidor') });
-            return response.json();
-        })
-        .then(data => {
-            alert(data.message);
-            addUserModal.hide();
-            loadUsers();
-        })
-        .catch(error => {
-            alert(`Erro ao adicionar usuário: ${error.message}`);
-        });
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                mode: 'cors',
+                body: JSON.stringify(userData)
+            })
+            .then(response => {
+                if (!response.ok) return response.json().then(err => {
+                    throw new Error(err.error || 'Erro do servidor')
+                });
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                addUserModal.hide();
+                loadUsers();
+            })
+            .catch(error => {
+                alert(`Erro ao adicionar usuário: ${error.message}`);
+            });
     });
 
     window.openEditModal = function(userId, name, balance, expirationDate, indication) {
-        console.log('Abrindo modal de edição:', { userId, name, balance, expirationDate, indication });
+        console.log('Abrindo modal de edição:', {
+            userId,
+            name,
+            balance,
+            expirationDate,
+            indication
+        });
         currentUserId = userId;
         editIdInput.value = userId || '-';
         editNameInput.value = name || '-';
         editBalanceInput.value = balance.toFixed(2);
-    
-        // --- LÓGICA DE DATA CORRIGIDA (SIMPLIFICADA) ---
+
+        // --- LÓGICA DE DATA CORRIGIDA ---
+        // Aqui usamos new Date() simples. 
+        // O navegador pega o UTC do servidor (ex: 02:59 amanhã) e converte para horário local (23:59 hoje).
         if (expirationDate) {
             const dateObj = new Date(expirationDate);
             if (!isNaN(dateObj.getTime())) {
                 const year = dateObj.getFullYear();
                 const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                 const day = String(dateObj.getDate()).padStart(2, '0');
-                
+
                 editExpirationInput.value = `${year}-${month}-${day}`;
-                
+
                 // Atualiza o display de dias restantes
                 const days = calculateDaysRemaining(dateObj).replace(' dias', '');
                 editDaysRemainingInput.value = days;
@@ -503,11 +546,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const myModal = new bootstrap.Modal(editModal);
         myModal.show();
     };
-    
+
     // Atualização dinâmica dos dias restantes ao mudar a data no input
     editExpirationInput.addEventListener('input', () => {
         const newDate = editExpirationInput.value;
         if (newDate) {
+            // Adiciona T00:00:00 para garantir que o cálculo considere o dia inteiro
             const correctedDate = new Date(newDate + 'T00:00:00');
             const days = calculateDaysRemaining(correctedDate).replace(' dias', '');
             editDaysRemainingInput.value = days > 0 ? days : 0;
@@ -521,11 +565,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return '0 dias';
             }
             const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0); // Zera a hora atual
-            
+            currentDate.setHours(0, 0, 0, 0); // Zera a hora atual para comparação justa
+
             const expirationDay = new Date(expDate.getTime());
             expirationDay.setHours(0, 0, 0, 0); // Zera a hora da expiração
-    
+
             const diffTime = expirationDay - currentDate;
             const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return daysRemaining > 0 ? `${daysRemaining} dias` : '0 dias';
@@ -544,32 +588,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteAllBtn = document.querySelector('#cancelModal .delete-all-btn');
         if (deleteAllBtn) {
             deleteAllBtn.removeEventListener('click', handleDeleteAll);
-            deleteAllBtn.addEventListener('click', handleDeleteAll, { once: true });
+            deleteAllBtn.addEventListener('click', handleDeleteAll, {
+                once: true
+            });
         }
     };
-    
+
     function handleDeleteAll() {
         if (!currentUserId) return;
         if (!confirm('Tem certeza que deseja excluir TODOS os dados deste usuário?')) return;
-        
+
         fetch(`https://ghost-web.up.railway.app/user/${currentUserId}/all`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            mode: 'cors'
-        })
-        .then(response => {
-            if (!response.ok) return response.text().then(text => { throw new Error(text || response.statusText) });
-            return response.json();
-        })
-        .then(data => {
-            alert('Sucesso: Todos os dados do usuário foram excluídos com sucesso!');
-            $(cancelModal).modal('hide');
-            loadUsers();
-        })
-        .catch(error => {
-            alert(`Erro ao excluir todos os dados: ${error.message}`);
-        });
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                mode: 'cors'
+            })
+            .then(response => {
+                if (!response.ok) return response.text().then(text => {
+                    throw new Error(text || response.statusText)
+                });
+                return response.json();
+            })
+            .then(data => {
+                alert('Sucesso: Todos os dados do usuário foram excluídos com sucesso!');
+                $(cancelModal).modal('hide');
+                loadUsers();
+            })
+            .catch(error => {
+                alert(`Erro ao excluir todos os dados: ${error.message}`);
+            });
     }
     loadUsers();
 });
