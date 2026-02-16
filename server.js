@@ -199,13 +199,18 @@ app.put('/user/:userId', async (req, res) => {
         }
 
         if (expirationDate !== undefined) {
-            console.log(`Atualizando data de expiração do usuário ${userId} para ${expirationDate}`);
-            if (expirationDate === null) {
-                await db.collection('expirationDates').deleteOne({ userId });
+            if (expirationDate === null || expirationDate === '') {
+                await db.collection('expirationDates').deleteOne({ userId: userId });
             } else {
+                const parsedExpirationDate = new Date(expirationDate + 'T23:59:59'); 
+                
+                if (isNaN(parsedExpirationDate.getTime())) {
+                    return res.status(400).json({ error: 'Data de expiração inválida' });
+                }
+
                 await db.collection('expirationDates').updateOne(
-                    { userId },
-                    { $set: { expirationDate: parsedExpirationDate.toISOString() } },
+                    { userId: userId },
+                    { $set: { expirationDate: parsedExpirationDate } },
                     { upsert: true }
                 );
             }
