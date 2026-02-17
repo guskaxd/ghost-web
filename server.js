@@ -127,7 +127,7 @@ app.get('/user/:userId', async (req, res) => {
     try {
         console.log(`Rota /user/${req.params.userId} acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
 
         const user = await db.collection('registeredUsers').findOne({ userId }) || {};
         const paymentHistory = user.paymentHistory || [];
@@ -154,7 +154,7 @@ app.put('/user/:userId', async (req, res) => {
     try {
         console.log(`Rota PUT /user/${req.params.userId} acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
         const { name, balance, expirationDate, indication } = req.body;
 
         console.log('Dados recebidos:', { name, balance, expirationDate, indication });
@@ -286,7 +286,7 @@ app.delete('/user/:userId/all', async (req, res) => {
     try {
         console.log(`Rota DELETE /user/${req.params.userId}/all acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
 
         if (!userId) {
             console.error('Erro: userId inválido ou vazio');
