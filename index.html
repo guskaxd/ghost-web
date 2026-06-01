@@ -57,6 +57,9 @@
                 </div>
                 <div id="search-container" class="search-add-container" style="display: none;">
                     <input type="text" id="search-input" placeholder="🔎 Pesquisar por ID ou Nome">
+                    <button id="addDaysAllBtn" class="btn btn-warning me-2">
+                         <i class="fas fa-calendar-plus"></i> Dias para Todos
+                    </button>
                     <button id="addUserBtn" class="btn btn-success">
                         <i class="fas fa-user-plus"></i> Adicionar Usuário
                     </button>
@@ -182,6 +185,30 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="saveNewUserBtn">Salvar Usuário</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal de Adição Todos -->
+<div class="modal fade" id="allUsersDaysModal" tabindex="-1" aria-labelledby="allUsersDaysModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="allUsersDaysModalLabel">Alterar Dias de Todos os Usuários</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Atenção:</strong> Esta ação alterará imediatamente os dias restantes e a data de expiração de <strong>TODOS</strong> os usuários do sistema.
+                </div>
+                <div class="mb-3">
+                    <label for="all-days-input" class="form-label">Quantidade de Dias Restantes (A partir de hoje)</label>
+                    <input type="number" class="form-control" id="all-days-input" placeholder="Ex: 30" min="0" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="saveAllDaysBtn">Aplicar para Todos</button>
             </div>
         </div>
     </div>

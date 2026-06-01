@@ -50,13 +50,13 @@ app.use(express.static(path.join(__dirname, '.')));
 app.use(express.json());
 app.use(cookieParser());
 
-// Rota para a raiz (/)
+// Rota para a raiz (/) que serve o login.html como página inicial
 app.get('/', (req, res) => {
     console.log('Rota / acessada, servindo login.html');
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Rota index.html protegida
+// Rota para servir index.html apenas para usuários autenticados
 app.get('/index.html', (req, res, next) => {
     if (!req.cookies.auth || req.cookies.auth !== 'true') {
         console.log('Usuário não autenticado, redirecionando para login');
@@ -65,23 +65,30 @@ app.get('/index.html', (req, res, next) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota health
+// Rota de teste para verificar se o servidor está funcionando
 app.get('/health', (req, res) => {
+    console.log('Rota /health acessada');
     res.json({ status: 'Servidor está rodando' });
 });
 
-// Rota users
+// Rota para buscar todos os usuários
 app.get('/users', async (req, res) => {
     try {
         console.log('Rota /users acessada');
         db = await ensureDBConnection();
         const users = await db.collection('registeredUsers').find().toArray();
+        console.log(`Encontrados ${users.length} usuários`);
 
         const usersData = await Promise.all(users.map(async (user) => {
+            console.log(`Processando usuário: ${user.userId}`);
             const paymentHistory = user.paymentHistory || [];
             const expirationDoc = await db.collection('expirationDates').findOne({ userId: user.userId });
+            
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // Busca o saldo de bônus do usuário na coleção userBalances
             const balanceDoc = await db.collection('userBalances').findOne({ userId: user.userId });
-            const bonusBalance = balanceDoc ? balanceDoc.balance : 0;
+            const bonusBalance = balanceDoc ? balanceDoc.balance : 0; // Se não houver, o saldo é 0
+            // --- FIM DA ALTERAÇÃO ---
 
             return {
                 userId: user.userId,
@@ -89,17 +96,22 @@ app.get('/users', async (req, res) => {
                 whatsapp: user.whatsapp,
                 registeredAt: user.registeredAt,
                 paymentHistory: paymentHistory,
-                balance: bonusBalance,
+                // --- ALTERAÇÃO AQUI ---
+                balance: bonusBalance, // Usamos o saldo de bônus encontrado
+                // --- FIM DA ALTERAÇÃO ---
                 expirationDate: expirationDoc ? expirationDoc.expirationDate : null,
                 indication: user.indication || null
             };
         }));
 
+        // O cálculo do totalBalanceFromHistory continua o mesmo, pois se refere ao histórico de pagamentos.
         const totalBalanceFromHistory = users.reduce((sum, user) => {
             const paymentHistory = user.paymentHistory || [];
             return sum + paymentHistory.reduce((total, payment) => total + (parseFloat(payment.amount) || 0), 0);
         }, 0);
 
+        console.log('Enviando resposta com os dados dos usuários:', usersData);
+        res.setHeader('Content-Type', 'application/json');
         res.json({
             users: usersData,
             totalBalanceFromHistory: totalBalanceFromHistory.toFixed(2)
@@ -110,24 +122,24 @@ app.get('/users', async (req, res) => {
     }
 });
 
-// Rota user/:userId
+// Rota para buscar dados de um único usuário
 app.get('/user/:userId', async (req, res) => {
     try {
         console.log(`Rota /user/${req.params.userId} acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
 
         const user = await db.collection('registeredUsers').findOne({ userId }) || {};
         const paymentHistory = user.paymentHistory || [];
         const expirationDoc = await db.collection('expirationDates').findOne({ userId }) || { expirationDate: null };
-        const balanceDoc = await db.collection('userBalances').findOne({ userId }) || { balance: 0 };
 
+        res.setHeader('Content-Type', 'application/json');
         res.json({
             userId: user.userId,
             name: user.name,
             whatsapp: user.whatsapp,
             paymentHistory: paymentHistory,
-            balance: balanceDoc.balance,
+            balance: 0,
             expirationDate: expirationDoc.expirationDate,
             indication: user.indication || null
         });
@@ -137,100 +149,96 @@ app.get('/user/:userId', async (req, res) => {
     }
 });
 
-// Rota PUT (AQUI ESTAVA O PROBLEMA DE DATA)
+// Rota para atualizar dados do usuário (VERSÃO COM EDIÇÃO DE SALDO)
 app.put('/user/:userId', async (req, res) => {
     try {
-        console.log(`[PUT] Rota /user/${req.params.userId} acessada`);
+        console.log(`Rota PUT /user/${req.params.userId} acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
         const { name, balance, expirationDate, indication } = req.body;
 
-        console.log(`[PUT] Dados recebidos para ${userId}:`, { name, balance, expirationDate });
+        console.log('Dados recebidos:', { name, balance, expirationDate, indication });
 
-        // 1. Atualização de Saldo
+        // --- INÍCIO DA NOVA LÓGICA DE ATUALIZAÇÃO DE SALDO ---
         if (balance !== undefined) {
             const newBalance = parseFloat(balance);
-            if (!isNaN(newBalance) && newBalance >= 0) {
-                await db.collection('userBalances').updateOne(
-                    { userId },
-                    { $set: { balance: newBalance } },
+            if (isNaN(newBalance) || newBalance < 0) {
+                console.warn('Validação falhou: Saldo deve ser um número positivo');
+                return res.status(400).json({ error: 'Saldo deve ser um número positivo' });
+            }
+
+            console.log(`Atualizando Saldo do usuário ${userId} para ${newBalance.toFixed(2)}`);
+            await db.collection('userBalances').updateOne(
+                { userId },
+                { $set: { balance: newBalance } },
+                { upsert: true } // Cria o documento se o usuário não tiver saldo
+            );
+        }
+        // --- FIM DA NOVA LÓGICA DE ATUALIZAÇÃO DE SALDO ---
+
+        let parsedExpirationDate = null;
+        if (expirationDate !== undefined && expirationDate !== null) {
+            try {
+                parsedExpirationDate = new Date(expirationDate);
+                if (isNaN(parsedExpirationDate.getTime())) {
+                    console.warn('Validação falhou: Data de expiração inválida', { expirationDate });
+                    return res.status(400).json({ error: 'Data de expiração inválida' });
+                }
+            } catch (err) {
+                console.warn('Erro ao parsear expirationDate:', err.message, { expirationDate });
+                return res.status(400).json({ error: 'Formato de data inválido' });
+            }
+        }
+
+        if (name || indication !== undefined) {
+            console.log(`Atualizando nome e indicação do usuário ${userId}`);
+            await db.collection('registeredUsers').updateOne(
+                { userId },
+                { $set: { name, indication: indication || null } }
+            );
+        }
+
+        if (expirationDate !== undefined) {
+            if (expirationDate === null || expirationDate === '') {
+                await db.collection('expirationDates').deleteOne({ userId: userId });
+            } else {
+                const parsedExpirationDate = new Date(expirationDate + 'T23:59:59'); 
+                
+                if (isNaN(parsedExpirationDate.getTime())) {
+                    return res.status(400).json({ error: 'Data de expiração inválida' });
+                }
+
+                await db.collection('expirationDates').updateOne(
+                    { userId: userId },
+                    { $set: { expirationDate: parsedExpirationDate } },
                     { upsert: true }
                 );
             }
         }
 
-        // 2. Atualização de Nome/Indicação
-        const updateFields = {};
-        if (name) updateFields.name = name;
-        if (indication !== undefined) updateFields.indication = indication || null;
-        
-        if (Object.keys(updateFields).length > 0) {
-            await db.collection('registeredUsers').updateOne(
-                { userId },
-                { $set: updateFields }
-            );
-        }
-
-        // 3. ATUALIZAÇÃO DA DATA (CORREÇÃO DE FUSO - BRASIL UTC-3)
-        if (expirationDate && typeof expirationDate === 'string' && expirationDate.trim() !== '') {
-            try {
-                // Input esperado do frontend: "YYYY-MM-DD"
-                const parts = expirationDate.split('-'); 
-                
-                if (parts.length === 3) {
-                    const year = parseInt(parts[0]);
-                    const month = parseInt(parts[1]) - 1; // Mês 0-indexed
-                    const day = parseInt(parts[2]);
-
-                    // Queremos que expire no FINAL DO DIA no Brasil (23:59:59 BRT)
-                    // BRT é UTC-3. Então 23:59 BRT = 02:59 do DIA SEGUINTE em UTC.
-                    
-                    // Criamos a data base UTC no dia selecionado
-                    const dateObj = new Date(Date.UTC(year, month, day));
-                    
-                    // Adicionamos 1 dia + 2 horas + 59 min + 59 seg (Total: 26h 59m 59s a partir da 00:00 do dia)
-                    // Isso garante que pule para o dia seguinte às 02:59 UTC
-                    dateObj.setUTCDate(dateObj.getUTCDate() + 1);
-                    dateObj.setUTCHours(2, 59, 59, 999);
-
-                    const isoDate = dateObj.toISOString();
-                    
-                    console.log(`[DATA] Input: ${expirationDate} -> Salvo no Banco (UTC): ${isoDate}`);
-
-                    await db.collection('expirationDates').updateOne(
-                        { userId },
-                        { $set: { expirationDate: isoDate } },
-                        { upsert: true }
-                    );
-                }
-            } catch (err) {
-                console.error(`[ERRO CRÍTICO] Falha ao processar data: ${err.message}`);
-            }
-        }
-
-        // Retorna dados atualizados
         const updatedUser = await db.collection('registeredUsers').findOne({ userId }) || {};
         const updatedExpiration = await db.collection('expirationDates').findOne({ userId }) || { expirationDate: null };
         const updatedBalance = await db.collection('userBalances').findOne({ userId }) || { balance: 0 };
 
+        res.setHeader('Content-Type', 'application/json');
         res.json({
             message: 'Dados atualizados com sucesso',
             updatedData: {
                 userId,
                 name: updatedUser.name,
+                paymentHistory: updatedUser.paymentHistory || [],
                 balance: updatedBalance.balance,
                 expirationDate: updatedExpiration.expirationDate,
-                indication: updatedUser.indication
+                indication: updatedUser.indication || null
             }
         });
-
     } catch (err) {
-        console.error(`[ERRO GERAL] Rota PUT: ${err.message}`);
-        res.status(500).json({ error: 'Erro interno ao atualizar dados' });
+        console.error('Erro na rota PUT /user/:userId:', err.message, err.stack);
+        res.status(500).json({ error: 'Erro ao atualizar dados', details: err.message });
     }
 });
 
-// Rota POST user
+// Rota para criar um novo usuário
 app.post('/user', async (req, res) => {
     try {
         console.log(`Rota POST /user acessada`);
@@ -238,76 +246,155 @@ app.post('/user', async (req, res) => {
         const { userId, name, whatsapp, expirationDate } = req.body;
 
         if (!userId || !name || !whatsapp) {
-            return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
+            return res.status(400).json({ error: 'ID Discord, Nome e WhatsApp são obrigatórios.' });
         }
 
+        // Verifica se o usuário já existe
         const existingUser = await db.collection('registeredUsers').findOne({ userId });
         if (existingUser) {
-            return res.status(409).json({ error: 'Usuário já existe.' });
+            return res.status(409).json({ error: 'Um usuário com este ID Discord já existe.' });
         }
 
+        // Insere o novo usuário
         await db.collection('registeredUsers').insertOne({
-            userId, name, whatsapp, registeredAt: new Date(), paymentHistory: []
+            userId: userId,
+            name: name,
+            whatsapp: whatsapp,
+            registeredAt: new Date(),
+            paymentHistory: []
         });
 
+        // Se uma data de expiração foi fornecida, cria o registro de assinatura
         if (expirationDate) {
-            // Aplica a mesma lógica de data da rota PUT
-            const parts = expirationDate.split('-');
-            const year = parseInt(parts[0]);
-            const month = parseInt(parts[1]) - 1;
-            const day = parseInt(parts[2]);
-            
-            const dateObj = new Date(Date.UTC(year, month, day));
-            dateObj.setUTCDate(dateObj.getUTCDate() + 1);
-            dateObj.setUTCHours(2, 59, 59, 999);
-
             await db.collection('expirationDates').insertOne({
-                userId,
-                expirationDate: dateObj.toISOString()
+                userId: userId,
+                expirationDate: new Date(expirationDate)
             });
         }
 
+        // O Change Stream do bot irá detectar a inserção e atribuir os cargos no Discord.
+
         res.status(201).json({ message: 'Usuário criado com sucesso!' });
     } catch (err) {
-        console.error('Erro na rota POST /user:', err.message);
-        res.status(500).json({ error: 'Erro ao criar usuário' });
+        console.error('Erro na rota POST /user:', err.message, err.stack);
+        res.status(500).json({ error: 'Erro ao criar usuário', details: err.message });
     }
 });
 
-// Rota DELETE all
+// Rota para atualizar os dias de expiração de TODOS os usuários de uma vez
+app.put('/users/expiration/days', async (req, res) => {
+    try {
+        console.log('Rota PUT /users/expiration/days acessada');
+        db = await ensureDBConnection();
+        const { days } = req.body;
+
+        if (days === undefined || isNaN(parseInt(days))) {
+            return res.status(400).json({ error: 'Número de dias inválido.' });
+        }
+
+        const numDays = parseInt(days, 10);
+        
+        // CORREÇÃO: Manipulação correta do objeto Date
+        const newExpirationDate = new Date();
+        newExpirationDate.setHours(23, 59, 59, 999); // Define para o final do dia atual
+        newExpirationDate.setDate(newExpirationDate.getDate() + numDays); // Adiciona os dias
+
+        // Busca todos os IDs de usuários registrados
+        const users = await db.collection('registeredUsers').find({}, { projection: { userId: 1 } }).toArray();
+
+        if (users.length === 0) {
+            return res.status(444).json({ message: 'Nenhum usuário encontrado para atualizar.' });
+        }
+
+        // Cria a operação em lote para atualizar ou inserir a nova data de expiração
+        const bulkOps = users.map(user => ({
+            updateOne: {
+                filter: { userId: user.userId },
+                update: { $set: { expirationDate: newExpirationDate } },
+                upsert: true
+            }
+        }));
+
+        await db.collection('expirationDates').bulkWrite(bulkOps);
+
+        console.log(`[Lote] Dias de expiração de todos os usuários atualizados para +${numDays} dias.`);
+        res.json({ 
+            message: `Sucesso: Assinatura de todos os ${users.length} usuários alterada para ${numDays} dias!`, 
+            newExpiration: newExpirationDate 
+        });
+    } catch (err) {
+        console.error('Erro ao atualizar dias de todos os usuários:', err.message);
+        res.status(500).json({ error: 'Erro interno ao atualizar usuários em lote', details: err.message });
+    }
+});
+
+// Rota para deletar todos os dados de um usuário
 app.delete('/user/:userId/all', async (req, res) => {
     try {
         console.log(`Rota DELETE /user/${req.params.userId}/all acessada`);
         db = await ensureDBConnection();
-        const userId = req.params.userId.toString().trim();
+        const userId = req.params.userId.toString();
 
+        if (!userId) {
+            console.error('Erro: userId inválido ou vazio');
+            return res.status(400).json({ error: 'ID do usuário inválido ou vazio' });
+        }
+
+        // Verificar se o usuário existe em registeredUsers
+        const userDoc = await db.collection('registeredUsers').findOne({ userId });
+        if (!userDoc) {
+            console.warn(`Usuário com userId ${userId} não encontrado em registeredUsers`);
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        console.log(`Excluindo todos os dados do usuário ${userId}`);
+
+        // Deletar documentos de todas as coleções relevantes
         const expirationResult = await db.collection('expirationDates').deleteOne({ userId });
         const balanceResult = await db.collection('userBalances').deleteOne({ userId });
         const registeredResult = await db.collection('registeredUsers').deleteOne({ userId });
         const couponResult = await db.collection('couponUsage').deleteOne({ userId });
 
+        console.log('Resultado da exclusão de expirationDates:', { deletedCount: expirationResult.deletedCount });
+        console.log('Resultado da exclusão de userBalances:', { deletedCount: balanceResult.deletedCount });
+        console.log('Resultado da exclusão de registeredUsers:', { deletedCount: registeredResult.deletedCount });
+        console.log('Resultado da exclusão de couponUsage:', { deletedCount: couponResult.deletedCount });
+
         const totalDeleted = expirationResult.deletedCount + balanceResult.deletedCount + registeredResult.deletedCount + couponResult.deletedCount;
 
-        res.json({ message: 'Dados excluídos com sucesso', totalDeleted });
+        if (totalDeleted === 0) {
+            console.warn(`Nenhum dado excluído para userId ${userId}`);
+            return res.status(404).json({ message: 'Nenhum dado encontrado para excluir' });
+        }
+
+        res.setHeader('Content-Type', 'application/json');
+        res.json({ message: 'Todos os dados do usuário foram excluídos com sucesso', totalDeleted });
     } catch (err) {
-        console.error('Erro na rota DELETE:', err.message);
-        res.status(500).json({ error: 'Erro ao excluir dados' });
+        console.error('Erro na rota DELETE /user/:userId/all:', err.message, err.stack);
+        res.status(500).json({ error: 'Erro ao excluir todos os dados', details: err.message });
     }
 });
 
-// Rotas Auth
+// Rota para login
 app.post('/login', (req, res) => {
+    console.log('Rota /login acessada');
     const { username, password } = req.body;
+
     if (username === 'admin' && password === '123') {
         res.cookie('auth', 'true', { maxAge: 3600000, httpOnly: true });
+        console.log('Login bem-sucedido, cookie definido');
         res.json({ success: true, message: 'Login bem-sucedido' });
     } else {
+        console.log('Credenciais inválidas');
         res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
 });
 
+// Rota para verificar autenticação
 app.get('/check-auth', (req, res) => {
-    res.json({ isAuthenticated: req.cookies.auth === 'true' });
+    console.log('Rota /check-auth acessada');
+    const isAuthenticated = req.cookies.auth === 'true';
+    res.json({ isAuthenticated });
 });
 
 // Rota para logout

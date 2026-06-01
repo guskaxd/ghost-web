@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'none';
-        fetch('https://ghost-web.up.railway.app/users', {
+        fetch('https://ghostt-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
+        fetch('https://ghostt-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
+        fetch('https://ghostt-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
+        fetch('https://ghostt-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         searchContainer.style.display = 'flex';
         usersTable.style.display = 'table';
-        fetch('https://ghost-web.up.railway.app/users', {
+        fetch('https://ghostt-web.up.railway.app/users', {
             credentials: 'include',
             mode: 'cors'
         })
@@ -419,11 +419,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     row.classList.add('indicated-user');
                 }
         
-                // --- CORREÇÃO DA DATA NA TABELA ---
-                // Usamos new Date() simples. O navegador converte o UTC do servidor para o horário local.
-                const expDate = user.expirationDate ? new Date(user.expirationDate) : null;
-                const formattedExpiration = (expDate && !isNaN(expDate.getTime())) ? expDate.toLocaleDateString('pt-BR') : '-';
-                const daysRemainingText = (expDate && !isNaN(expDate.getTime())) ? calculateDaysRemaining(expDate) : '0 dias';
+                // --- LÓGICA DE DATA ATUALIZADA AQUI ---
+                const correctedDate = getCorrectedLocalDate(user.expirationDate);
+                const formattedExpiration = correctedDate ? correctedDate.toLocaleDateString('pt-BR') : '-';
+                const daysRemainingText = correctedDate ? calculateDaysRemaining(correctedDate) : '0 dias';
                 
                 row.innerHTML = `
                     <td>${user.userId || '-'}</td>
@@ -470,17 +469,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const name = editNameInput.value;
             const balance = parseFloat(editBalanceInput.value) || 0;
-            const expirationDate = editExpirationInput.value ? editExpirationInput.value : undefined;
+            const expirationDate = editExpirationInput.value || null;
             const indication = editIndicationInput.value === 'Nenhuma' ? null : editIndicationInput.value;
 
-            const requestBody = { name, balance, indication };
-
-            if (expirationDate !== undefined) {
-                requestBody.expirationDate = expirationDate;
-            }
+            const requestBody = { name, balance, expirationDate, indication };
 
             console.log('Enviando requisição PUT com:', requestBody);
-            fetch(`https://ghost-web.up.railway.app/user/${currentUserId}`, {
+            fetch(`https://ghostt-web.up.railway.app/user/${currentUserId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -545,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleLogout() {
         console.log('Logout solicitado');
-        fetch('https://ghost-web.up.railway.app/logout', {
+        fetch('https://ghostt-web.up.railway.app/logout', {
             method: 'POST',
             credentials: 'include',
             mode: 'cors'
@@ -595,6 +590,62 @@ document.addEventListener('DOMContentLoaded', () => {
         addUserModal.show();
     });
 
+    // --- Nova lógica para alteração de dias em massa ---
+    const allUsersDaysModal = new bootstrap.Modal(document.getElementById('allUsersDaysModal'));
+    const addDaysAllBtn = document.getElementById('addDaysAllBtn');
+    const saveAllDaysBtn = document.getElementById('saveAllDaysBtn');
+    const allDaysInput = document.getElementById('all-days-input');
+
+    // Abre o modal de alteração global
+    if (addDaysAllBtn) {
+        addDaysAllBtn.addEventListener('click', () => {
+            allDaysInput.value = ''; // Limpa o input
+            allUsersDaysModal.show();
+            console.log('Modal de dias em massa aberto.');
+        });
+    }
+
+    // Processa a salvamento em lote
+    if (saveAllDaysBtn) {
+        saveAllDaysBtn.addEventListener('click', () => {
+            const days = parseInt(allDaysInput.value, 10);
+            
+            if (isNaN(days) || days < 0) {
+                alert('Por favor, insira um número válido e positivo de dias.');
+                return;
+            }
+
+            // Confirmação dupla de segurança por ser uma ação destrutiva/crítica
+            if (!confirm(`⚠️ ALERTA CRÍTICO:\n\nTem certeza absoluta que deseja definir exatamente ${days} dias de acesso para TODOS os usuários? Isso sobrescreverá os prazos atuais.`)) {
+                return;
+            }
+
+            console.log(`Disparando atualização em lote para todos os usuários: ${days} dias.`);
+
+            fetch('https://ghostt-web.up.railway.app/users/expiration/days', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                mode: 'cors',
+                body: JSON.stringify({ days: days })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || 'Erro interno do servidor') });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                allUsersDaysModal.hide();
+                loadUsers(); // Recarrega a tabela de usuários atualizada na tela
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar dias em massa:', error);
+                alert(`Erro ao processar alteração em massa: ${error.message}`);
+            });
+        });
+    }
     // Evento para salvar o novo usuário
     saveNewUserBtn.addEventListener('click', () => {
         const userId = document.getElementById('add-userId').value;
@@ -614,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log('Enviando dados do novo usuário para o servidor:', userData);
 
-        fetch(`https://ghost-web.up.railway.app/user`, {
+        fetch(`https://ghostt-web.up.railway.app/user`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -643,34 +694,43 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUserId = userId;
         editIdInput.value = userId || '-';
         editNameInput.value = name || '-';
-        editBalanceInput.value = parseFloat(balance).toFixed(2);
+        editBalanceInput.value = balance.toFixed(2);
     
-        // --- LÓGICA DE DATA CORRIGIDA ---
-        if (expirationDate && expirationDate !== 'undefined' && expirationDate !== '') {
-            const dateObj = new Date(expirationDate);
-            if (!isNaN(dateObj.getTime())) {
-                // O navegador converte automaticamente o UTC do servidor para o horário local
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                
-                editExpirationInput.value = `${year}-${month}-${day}`;
-                
-                // Atualiza o display visual usando a nova lógica
-                editDaysRemainingInput.value = calculateDaysRemaining(dateObj);
-            } else {
-                editExpirationInput.value = '';
-                editDaysRemainingInput.value = '';
-            }
-        } else {
-            editExpirationInput.value = '';
-            editDaysRemainingInput.value = '';
-        }
+        // --- LÓGICA DE DATA ATUALIZADA AQUI ---
+    const correctedDate = getCorrectedLocalDate(expirationDate);
+
+    if (correctedDate) {
+        const year = correctedDate.getFullYear();
+        const month = String(correctedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(correctedDate.getDate()).padStart(2, '0');
+        editExpirationInput.value = `${year}-${month}-${day}`;
+        editDaysRemainingInput.value = calculateDaysRemaining(correctedDate).replace(' dias', '');
+    } else {
+        editExpirationInput.value = '';
+        editDaysRemainingInput.value = 0;
+    }
 
         editIndicationInput.value = indication || 'Nenhuma';
         const myModal = new bootstrap.Modal(editModal);
         myModal.show();
+        console.log('Modal de edição exibido');
     };
+    
+    // Escutador para quando o admin altera os DIAS
+    editDaysRemainingInput.addEventListener('input', () => {
+        const days = parseInt(editDaysRemainingInput.value, 10);
+        if (!isNaN(days) && days >= 0) {
+            const today = new Date();
+            // Zera a hora para evitar problemas com fuso horário
+            today.setHours(0, 0, 0, 0);
+            
+            const newExpirationDate = new Date(today);
+            newExpirationDate.setDate(today.getDate() + days);
+            
+            // Formata a data para o formato YYYY-MM-DD que o input "date" aceita
+            editExpirationInput.value = newExpirationDate.toISOString().split('T')[0];
+        }
+    });
 
     editExpirationInput.addEventListener('input', () => {
         const newDate = editExpirationInput.value;
@@ -681,28 +741,37 @@ document.addEventListener('DOMContentLoaded', () => {
             editDaysRemainingInput.value = days > 0 ? days : 0;
         }
     });
+    
+    // NOVA FUNÇÃO PARA CORRIGIR DATAS (IGNORANDO FUSO HORÁRIO)
+    function getCorrectedLocalDate(dateString) {
+        if (!dateString) return null;
+        const dateUTC = new Date(dateString);
+        if (isNaN(dateUTC.getTime())) return null;
+        
+        // Cria uma nova data na hora local usando os componentes UTC da data original.
+        // Isso efetivamente "transporta" a data (ex: 1 de Nov) para o fuso horário local sem alterá-la.
+        return new Date(dateUTC.getUTCFullYear(), dateUTC.getUTCMonth(), dateUTC.getUTCDate());
+    }
 
     function calculateDaysRemaining(expDate) {
-        if (!expDate) return '-';
+        if (!expDate) return '0 dias';
         try {
             if (isNaN(expDate.getTime())) {
-                return '-';
+                return '0 dias';
             }
             const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0); // Zera a hora atual
+            currentDate.setHours(0, 0, 0, 0); // Zera a hora da data atual para uma comparação justa
             
+            // Clona a data de expiração para não modificar a original
             const expirationDay = new Date(expDate.getTime());
-            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da expiração
+            expirationDay.setHours(0, 0, 0, 0); // Zera a hora da data de expiração
     
             const diffTime = expirationDay - currentDate;
             const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (daysRemaining < 0) return 'Expirado';
-            if (daysRemaining === 0) return 'Vence Hoje'; // Mostra que ainda vale por hoje
-            return `${daysRemaining} dias`;
+            return daysRemaining > 0 ? `${daysRemaining} dias` : '0 dias';
         } catch (err) {
             console.error('Erro ao calcular dias restantes:', err.message);
-            return '-';
+            return '0 dias';
         }
     }
 
@@ -738,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Exclusão cancelada pelo usuário');
             return;
         }
-        fetch(`https://ghost-web.up.railway.app/user/${currentUserId}/all`, {
+        fetch(`https://ghostt-web.up.railway.app/user/${currentUserId}/all`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
