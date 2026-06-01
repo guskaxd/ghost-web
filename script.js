@@ -610,13 +610,17 @@ document.addEventListener('DOMContentLoaded', () => {
         saveAllDaysBtn.addEventListener('click', () => {
             const days = parseInt(allDaysInput.value, 10);
             
-            if (isNaN(days) || days < 0) {
-                alert('Por favor, insira um número válido e positivo de dias.');
+            if (isNaN(days)) {
+                alert('Por favor, insira um número válido. Ex: 5 para adicionar, -5 para retirar.');
                 return;
             }
 
-            // Confirmação dupla de segurança por ser uma ação destrutiva/crítica
-            if (!confirm(`⚠️ ALERTA CRÍTICO:\n\nTem certeza absoluta que deseja definir exatamente ${days} dias de acesso para TODOS os usuários? Isso sobrescreverá os prazos atuais.`)) {
+            // Verifica se é adição ou remoção para o texto do alerta
+            const acaoText = days >= 0 ? 'ADICIONAR' : 'REMOVER';
+            const diasAbsolutos = Math.abs(days); // Transforma -1 em 1 só para o texto ficar bonito
+
+            // Confirmação dupla de segurança
+            if (!confirm(`⚠️ ALERTA CRÍTICO:\n\nTem certeza absoluta que deseja ${acaoText} ${diasAbsolutos} dias para TODOS os usuários da base?`)) {
                 return;
             }
 

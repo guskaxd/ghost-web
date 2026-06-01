@@ -281,10 +281,10 @@ app.post('/user', async (req, res) => {
     }
 });
 
-// Rota para atualizar os dias de expiração de TODOS os usuários de uma vez
+// Rota para ADICIONAR dias de expiração para TODOS os usuários de uma vez
 app.put('/users/expiration/days', async (req, res) => {
     try {
-        console.log('Rota PUT /users/expiration/days acessada');
+        console.log('Rota PUT /users/expiration/days (Adicionar) acessada');
         db = await ensureDBConnection();
         const { days } = req.body;
 
@@ -293,11 +293,8 @@ app.put('/users/expiration/days', async (req, res) => {
         }
 
         const numDays = parseInt(days, 10);
-        
-        // CORREÇÃO: Manipulação correta do objeto Date
-        const newExpirationDate = new Date();
-        newExpirationDate.setHours(23, 59, 59, 999); // Define para o final do dia atual
-        newExpirationDate.setDate(newExpirationDate.getDate() + numDays); // Adiciona os dias
+        const millisecondsToAdd = numDays * 24 * 60 * 60 * 1000;
+        const today = new Date();
 
         // Busca todos os IDs de usuários registrados
         const users = await db.collection('registeredUsers').find({}, { projection: { userId: 1 } }).toArray();
@@ -306,25 +303,44 @@ app.put('/users/expiration/days', async (req, res) => {
             return res.status(444).json({ message: 'Nenhum usuário encontrado para atualizar.' });
         }
 
-        // Cria a operação em lote para atualizar ou inserir a nova data de expiração
+        // Operação em lote com pipeline de agregação para decidir de onde somar os dias
         const bulkOps = users.map(user => ({
             updateOne: {
                 filter: { userId: user.userId },
-                update: { $set: { expirationDate: newExpirationDate } },
+                update: [
+                    {
+                        $set: {
+                            expirationDate: {
+                                $cond: {
+                                    // SE a data de expiração existe E é maior que a data de hoje
+                                    if: { 
+                                        $and: [
+                                            { $ifNull: ["$expirationDate", false] },
+                                            { $gt: ["$expirationDate", today] }
+                                        ]
+                                    },
+                                    // ENTÃO soma os dias a partir da data de expiração atual
+                                    then: { $add: ["$expirationDate", millisecondsToAdd] },
+                                    // SENÃO (vencida ou inexistente), soma os dias a partir de hoje
+                                    else: new Date(today.getTime() + millisecondsToAdd)
+                                }
+                            }
+                        }
+                    }
+                ],
                 upsert: true
             }
         }));
 
         await db.collection('expirationDates').bulkWrite(bulkOps);
 
-        console.log(`[Lote] Dias de expiração de todos os usuários atualizados para +${numDays} dias.`);
+        console.log(`[Lote] Foram adicionados +${numDays} dias para todos os usuários.`);
         res.json({ 
-            message: `Sucesso: Assinatura de todos os ${users.length} usuários alterada para ${numDays} dias!`, 
-            newExpiration: newExpirationDate 
+            message: `Sucesso: Foram adicionados +${numDays} dias à assinatura de todos os ${users.length} usuários!`
         });
     } catch (err) {
-        console.error('Erro ao atualizar dias de todos os usuários:', err.message);
-        res.status(500).json({ error: 'Erro interno ao atualizar usuários em lote', details: err.message });
+        console.error('Erro ao adicionar dias para todos os usuários:', err.message);
+        res.status(500).json({ error: 'Erro interno ao adicionar dias em lote', details: err.message });
     }
 });
 
