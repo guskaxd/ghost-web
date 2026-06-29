@@ -2,6 +2,7 @@ let editModal = null;
 let cancelModal = null;
 let editIdInput = null;
 let editNameInput = null;
+let editWhatsappInput = null;
 let editBalanceInput = null;
 let editExpirationInput = null;
 let editDaysRemainingInput = null;
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeSubscriptionsEl = document.getElementById('active-subscriptions');
     const expiredSubscriptionsEl = document.getElementById('expired-subscriptions');
     const sidebar = document.querySelector('.sidebar');
+    editWhatsappInput = document.getElementById('edit-whatsapp');
     const menuToggle = document.querySelector('.menu-toggle');
     const searchContainer = document.getElementById('search-container');
     const searchInput = document.getElementById('search-input');
@@ -434,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${formattedExpiration}</td>
                     <td>${daysRemainingText}</td>
                     <td>
-                        <button class="action-btn edit-btn" data-user-id="${user.userId}" data-name="${escapedName}" data-balance="${user.balance || 0}" data-expiration="${user.expirationDate || ''}" data-indication="${indication}">
+                        <button class="action-btn edit-btn" data-user-id="${user.userId}" data-name="${escapedName}" data-whatsapp="${user.whatsapp || ''}" data-balance="${user.balance || 0}" data-expiration="${user.expirationDate || ''}" data-indication="${indication}">
                             <i class="fas fa-edit"></i> Editar
                         </button>
                         <button class="action-btn delete-btn" data-user-id="${user.userId}" data-name="${escapedName}">
@@ -468,12 +470,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const name = editNameInput.value;
+            const whatsapp = editWhatsappInput.value; // NOVA LINHA
             const balance = parseFloat(editBalanceInput.value) || 0;
             const expirationDate = editExpirationInput.value || null;
             const indication = editIndicationInput.value === 'Nenhuma' ? null : editIndicationInput.value;
 
-            const requestBody = { name, balance, expirationDate, indication };
-
+            // ADICIONE O WHATSAPP AQUI
+            const requestBody = { name, whatsapp, balance, expirationDate, indication };
             console.log('Enviando requisição PUT com:', requestBody);
             fetch(`https://ghostt-web.up.railway.app/user/${currentUserId}`, {
                 method: 'PUT',
@@ -571,11 +574,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editBtn) {
             const userId = editBtn.dataset.userId;
             const name = editBtn.dataset.name.replace(/\\'/g, "'");
+            const whatsapp = editBtn.dataset.whatsapp; // NOVA LINHA
             const balance = parseFloat(editBtn.dataset.balance) || 0;
             const expirationDate = editBtn.dataset.expiration;
             const indication = editBtn.dataset.indication || '';
             console.log('Clicou em Editar para userId:', userId);
-            window.openEditModal(userId, name, balance, expirationDate, indication);
+            
+            // ATUALIZE OS PARÂMETROS AQUI
+            window.openEditModal(userId, name, whatsapp, balance, expirationDate, indication); 
         } else if (deleteBtn) {
             const userId = deleteBtn.dataset.userId;
             const name = deleteBtn.dataset.name.replace(/\\'/g, "'");
@@ -693,11 +699,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    window.openEditModal = function(userId, name, balance, expirationDate, indication) {
-        console.log('Abrindo modal de edição:', { userId, name, balance, expirationDate, indication });
+    window.openEditModal = function(userId, name, whatsapp, balance, expirationDate, indication) { // <- Adicionado whatsapp aqui
+        console.log('Abrindo modal de edição:', { userId, name, whatsapp, balance, expirationDate, indication });
         currentUserId = userId;
         editIdInput.value = userId || '-';
         editNameInput.value = name || '-';
+        editWhatsappInput.value = whatsapp || ''; // NOVA LINHA
         editBalanceInput.value = balance.toFixed(2);
     
         // --- LÓGICA DE DATA ATUALIZADA AQUI ---

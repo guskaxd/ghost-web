@@ -155,9 +155,9 @@ app.put('/user/:userId', async (req, res) => {
         console.log(`Rota PUT /user/${req.params.userId} acessada`);
         db = await ensureDBConnection();
         const userId = req.params.userId.toString();
-        const { name, balance, expirationDate, indication } = req.body;
+        const { name, whatsapp, balance, expirationDate, indication } = req.body;
 
-        console.log('Dados recebidos:', { name, balance, expirationDate, indication });
+        console.log('Dados recebidos:', { name, whatsapp, balance, expirationDate, indication });
 
         // --- INÍCIO DA NOVA LÓGICA DE ATUALIZAÇÃO DE SALDO ---
         if (balance !== undefined) {
@@ -190,11 +190,17 @@ app.put('/user/:userId', async (req, res) => {
             }
         }
 
-        if (name || indication !== undefined) {
-            console.log(`Atualizando nome e indicação do usuário ${userId}`);
+        if (name !== undefined || whatsapp !== undefined || indication !== undefined) {
+            console.log(`Atualizando dados básicos do usuário ${userId}`);
+            
+            const updateFields = {};
+            if (name !== undefined) updateFields.name = name;
+            if (whatsapp !== undefined) updateFields.whatsapp = whatsapp;
+            if (indication !== undefined) updateFields.indication = indication || null;
+
             await db.collection('registeredUsers').updateOne(
                 { userId },
-                { $set: { name, indication: indication || null } }
+                { $set: updateFields }
             );
         }
 
